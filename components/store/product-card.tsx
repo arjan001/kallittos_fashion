@@ -6,9 +6,12 @@ import { Heart, ShoppingBag, Eye } from "lucide-react"
 import type { Product } from "@/lib/types"
 import { formatPrice } from "@/lib/format"
 import { useCart } from "@/lib/cart-context"
+import { useWishlist } from "@/lib/wishlist-context"
 
 export function ProductCard({ product }: { product: Product }) {
   const { addItem } = useCart()
+  const { toggleItem, isInWishlist } = useWishlist()
+  const wishlisted = isInWishlist(product.id)
 
   return (
     <div className="group">
@@ -39,10 +42,11 @@ export function ProductCard({ product }: { product: Product }) {
           <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             <button
               type="button"
+              onClick={(e) => { e.preventDefault(); toggleItem(product) }}
               className="w-9 h-9 flex items-center justify-center bg-background rounded-full shadow-sm hover:bg-secondary transition-colors"
-              aria-label="Add to wishlist"
+              aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
             >
-              <Heart className="h-4 w-4" />
+              <Heart className={`h-4 w-4 ${wishlisted ? "fill-red-500 text-red-500" : ""}`} />
             </button>
             <button
               type="button"

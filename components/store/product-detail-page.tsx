@@ -10,6 +10,7 @@ import { Footer } from "./footer"
 import { ProductCard } from "./product-card"
 import type { Product } from "@/lib/types"
 import { useCart } from "@/lib/cart-context"
+import { useWishlist } from "@/lib/wishlist-context"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import useSWR from "swr"
@@ -24,6 +25,8 @@ export function ProductDetailPage({ slug }: { slug: string }) {
   const { data: allProducts = [] } = useSWR<Product[]>("/api/products", fetcher)
   const product = allProducts.find((p) => p.slug === slug) || null
   const { addItem } = useCart()
+  const { toggleItem, isInWishlist } = useWishlist()
+  const wishlisted = product ? isInWishlist(product.id) : false
   const [selectedImage, setSelectedImage] = useState(0)
   const [quantity, setQuantity] = useState(1)
   const [selectedVariations, setSelectedVariations] = useState<Record<string, string>>({})
@@ -269,9 +272,14 @@ export function ProductDetailPage({ slug }: { slug: string }) {
                   </svg>
                   Order via WhatsApp
                 </a>
-                <Button variant="outline" size="icon" className="h-12 w-12 flex-shrink-0 bg-transparent">
-                  <Heart className="h-5 w-5" />
-                  <span className="sr-only">Add to wishlist</span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-12 w-12 flex-shrink-0 bg-transparent"
+                  onClick={() => product && toggleItem(product)}
+                >
+                  <Heart className={`h-5 w-5 ${wishlisted ? "fill-red-500 text-red-500" : ""}`} />
+                  <span className="sr-only">{wishlisted ? "Remove from wishlist" : "Add to wishlist"}</span>
                 </Button>
               </div>
 

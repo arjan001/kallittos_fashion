@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useRef } from "react"
 import Image from "next/image"
 import { ExternalLink } from "lucide-react"
 
@@ -27,29 +28,61 @@ const instagramPosts = [
   },
 ]
 
-const tiktokPosts = [
+// TikTok video IDs from @kallittos account
+const tiktokVideos = [
   {
-    id: "tt-1",
-    thumbnail: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=400&h=600&fit=crop",
-    caption: "How to style mom jeans 3 ways",
-    views: "12.4K",
-    url: "https://www.tiktok.com/@kallittos",
+    id: "7461643744227393798",
+    url: "https://www.tiktok.com/@kallittos/video/7461643744227393798",
   },
   {
-    id: "tt-2",
-    thumbnail: "https://images.unsplash.com/photo-1565084888279-aca607ecce0c?w=400&h=600&fit=crop",
-    caption: "Thrift haul: Best denim finds",
-    views: "8.7K",
-    url: "https://www.tiktok.com/@kallittos",
+    id: "7459629757042420998",
+    url: "https://www.tiktok.com/@kallittos/video/7459629757042420998",
   },
   {
-    id: "tt-3",
-    thumbnail: "https://images.unsplash.com/photo-1604176354204-9268737828e4?w=400&h=600&fit=crop",
-    caption: "Baggy jeans outfit inspo",
-    views: "15.1K",
-    url: "https://www.tiktok.com/@kallittos",
+    id: "7458357073960582406",
+    url: "https://www.tiktok.com/@kallittos/video/7458357073960582406",
   },
 ]
+
+function TikTokEmbed({ videoUrl, videoId }: { videoUrl: string; videoId: string }) {
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    // Load TikTok embed script
+    if (typeof window !== "undefined") {
+      const existing = document.getElementById("tiktok-embed-script")
+      if (!existing) {
+        const script = document.createElement("script")
+        script.id = "tiktok-embed-script"
+        script.src = "https://www.tiktok.com/embed.js"
+        script.async = true
+        document.body.appendChild(script)
+      } else {
+        // Re-trigger TikTok embed processing
+        if ((window as unknown as Record<string, unknown>).tiktokEmbed) {
+          ;(window as unknown as Record<string, { lib: { render: (el: Element[]) => void } }>).tiktokEmbed.lib.render(
+            containerRef.current ? [containerRef.current] : []
+          )
+        }
+      }
+    }
+  }, [videoId])
+
+  return (
+    <div ref={containerRef} className="tiktok-embed-wrapper">
+      <blockquote
+        className="tiktok-embed"
+        cite={videoUrl}
+        data-video-id={videoId}
+        style={{ maxWidth: "100%", minWidth: "280px" }}
+      >
+        <section>
+          <a target="_blank" href={videoUrl} rel="noopener noreferrer">Loading TikTok...</a>
+        </section>
+      </blockquote>
+    </div>
+  )
+}
 
 export function SocialFeed() {
   return (
@@ -118,7 +151,7 @@ export function SocialFeed() {
           </div>
         </div>
 
-        {/* TikTok Section */}
+        {/* TikTok Section - Real Embeds */}
         <div>
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
@@ -142,40 +175,11 @@ export function SocialFeed() {
               <ExternalLink className="h-3 w-3" />
             </a>
           </div>
-          <div className="grid grid-cols-3 gap-3 lg:gap-4">
-            {tiktokPosts.map((post) => (
-              <a
-                key={post.id}
-                href={post.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group relative aspect-[9/16] rounded-xl overflow-hidden bg-muted"
-              >
-                <Image
-                  src={post.thumbnail || "/placeholder.svg"}
-                  alt={post.caption}
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
-                  sizes="(max-width: 768px) 33vw, 300px"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-foreground/70 via-transparent to-transparent flex items-end">
-                  <div className="p-3 lg:p-4">
-                    <p className="text-white text-xs lg:text-sm font-medium line-clamp-2">{post.caption}</p>
-                    <div className="flex items-center gap-1.5 mt-1.5">
-                      <svg className="h-3 w-3 text-white/70" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
-                      </svg>
-                      <span className="text-white/70 text-[10px] lg:text-xs">{post.views} views</span>
-                    </div>
-                  </div>
-                </div>
-                {/* Play icon overlay */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 lg:w-12 lg:h-12 bg-foreground/40 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <svg className="h-5 w-5 lg:h-6 lg:w-6 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                </div>
-              </a>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+            {tiktokVideos.map((video) => (
+              <div key={video.id} className="flex justify-center">
+                <TikTokEmbed videoUrl={video.url} videoId={video.id} />
+              </div>
             ))}
           </div>
         </div>

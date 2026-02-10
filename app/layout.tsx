@@ -2,6 +2,7 @@ import React from "react"
 import type { Metadata, Viewport } from "next"
 import { Inter, Playfair_Display } from "next/font/google"
 import { CartProvider } from "@/lib/cart-context"
+import { WishlistProvider } from "@/lib/wishlist-context"
 import "./globals.css"
 
 const inter = Inter({
@@ -135,7 +136,7 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans antialiased">
-        <CartProvider>{children}</CartProvider>
+        <WishlistProvider><CartProvider>{children}</CartProvider></WishlistProvider>
       </body>
     </html>
   )
