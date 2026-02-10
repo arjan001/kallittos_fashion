@@ -3,6 +3,8 @@
 import { useState, useMemo, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 import { SlidersHorizontal, Grid3X3, LayoutList, X, Search } from "lucide-react"
+import { usePagination } from "@/hooks/use-pagination"
+import { PaginationControls } from "@/components/pagination-controls"
 import { TopBar } from "./top-bar"
 import { Navbar } from "./navbar"
 import { Footer } from "./footer"
@@ -119,6 +121,11 @@ export function ShopPage() {
     return result
   }, [products, selectedCategory, showNew, showOffers, priceRange, sortBy, queryParam, localSearch])
 
+  const { paginatedItems, currentPage, totalPages, totalItems, itemsPerPage, goToPage, changePerPage, resetPage } = usePagination(filtered, { defaultPerPage: 12 })
+
+  // Reset page when filters change
+  useEffect(() => { resetPage() }, [selectedCategory, showNew, showOffers, sortBy, queryParam, localSearch])
+
   const activeFilters = [
     queryParam && `Search: "${queryParam}"`,
     selectedCategory && categories.find((c) => c.slug === selectedCategory)?.name,
@@ -194,9 +201,20 @@ export function ShopPage() {
                   <button type="button" onClick={() => { setSelectedCategory(""); setShowNew(false); setShowOffers(false); setPriceRange([0, maxPrice]); setLocalSearch("") }} className="mt-3 text-sm underline hover:text-muted-foreground">Clear all filters</button>
                 </div>
               ) : (
-                <div className={gridView === "grid" ? "grid grid-cols-2 md:grid-cols-3 gap-4 lg:gap-6" : "grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6"}>
-                  {filtered.map((product) => <ProductCard key={product.id} product={product} />)}
-                </div>
+                <>
+                  <div className={gridView === "grid" ? "grid grid-cols-2 md:grid-cols-3 gap-4 lg:gap-6" : "grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6"}>
+                    {paginatedItems.map((product) => <ProductCard key={product.id} product={product} />)}
+                  </div>
+                  <PaginationControls
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={totalItems}
+                    itemsPerPage={itemsPerPage}
+                    onPageChange={(p) => { goToPage(p); window.scrollTo({ top: 0, behavior: "smooth" }) }}
+                    onItemsPerPageChange={changePerPage}
+                    perPageOptions={[12, 24, 48, 96]}
+                  />
+                </>
               )}
             </div>
           </div>
