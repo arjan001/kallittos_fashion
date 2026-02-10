@@ -15,15 +15,26 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import useSWR from "swr"
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json())
+const fetcher = (url: string) => fetch(url).then((r) => {
+  if (!r.ok) throw new Error("Failed to fetch")
+  return r.json()
+})
 
 function formatPrice(price: number): string {
   return `KSh ${price.toLocaleString()}`
 }
 
+interface ProductPageData {
+  product: Product
+  similar: Product[]
+  youMayLike: Product[]
+}
+
 export function ProductDetailPage({ slug }: { slug: string }) {
-  const { data: allProducts = [] } = useSWR<Product[]>("/api/products", fetcher)
-  const product = allProducts.find((p) => p.slug === slug) || null
+  const { data, error, isLoading } = useSWR<ProductPageData>(`/api/products/${slug}`, fetcher)
+  const product = data?.product || null
+  const similar = data?.similar || []
+  const youMayLike = data?.youMayLike || []
   const { addItem } = useCart()
   const { toggleItem, isInWishlist } = useWishlist()
   const wishlisted = product ? isInWishlist(product.id) : false
@@ -31,20 +42,23 @@ export function ProductDetailPage({ slug }: { slug: string }) {
   const [quantity, setQuantity] = useState(1)
   const [selectedVariations, setSelectedVariations] = useState<Record<string, string>>({})
 
-  if (!allProducts.length) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col">
         <TopBar />
         <Navbar />
         <main className="flex-1 flex items-center justify-center">
-          <p className="text-sm text-muted-foreground">Loading...</p>
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-6 h-6 border-2 border-foreground border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm text-muted-foreground">Loading product...</p>
+          </div>
         </main>
         <Footer />
       </div>
     )
   }
 
-  if (!product) {
+  if (error || !product) {
     return (
       <div className="min-h-screen flex flex-col">
         <TopBar />
@@ -52,7 +66,8 @@ export function ProductDetailPage({ slug }: { slug: string }) {
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <h1 className="text-2xl font-serif font-bold">Product Not Found</h1>
-            <Link href="/shop" className="text-sm underline mt-3 inline-block">
+            <p className="text-sm text-muted-foreground mt-2">This product may have been removed or the link is incorrect.</p>
+            <Link href="/shop" className="text-sm underline mt-4 inline-block">
               Back to Shop
             </Link>
           </div>
@@ -61,31 +76,6 @@ export function ProductDetailPage({ slug }: { slug: string }) {
       </div>
     )
   }
-
-  // Similar: same category, sorted by name-keyword overlap
-  const nameWords = product.name.toLowerCase().split(/\s+/).filter((w) => w.length > 2)
-  const similar = allProducts
-    .filter((p) => p.id !== product.id && p.categorySlug === product.categorySlug)
-    .map((p) => {
-      const pWords = p.name.toLowerCase().split(/\s+/)
-      const overlap = nameWords.filter((w) => pWords.some((pw) => pw.includes(w))).length
-      return { ...p, _score: overlap }
-    })
-    .sort((a, b) => b._score - a._score)
-    .slice(0, 4)
-
-  // You May Also Like: cross-category but matching tags or name keywords
-  const productTagSet = new Set(product.tags.map((t) => t.toLowerCase()))
-  const youMayLike = allProducts
-    .filter((p) => p.id !== product.id && !similar.some((s) => s.id === p.id))
-    .map((p) => {
-      const pWords = p.name.toLowerCase().split(/\s+/)
-      const nameOverlap = nameWords.filter((w) => pWords.some((pw) => pw.includes(w))).length
-      const tagOverlap = p.tags.filter((t) => productTagSet.has(t.toLowerCase())).length
-      return { ...p, _score: tagOverlap * 2 + nameOverlap }
-    })
-    .sort((a, b) => b._score - a._score)
-    .slice(0, 4)
 
   const handleAddToCart = () => {
     addItem(product, quantity, Object.keys(selectedVariations).length > 0 ? selectedVariations : undefined)

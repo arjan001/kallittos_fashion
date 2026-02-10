@@ -1,24 +1,17 @@
 import { ProductDetailPage } from "@/components/store/product-detail-page"
-import { getProducts, getProductBySlug } from "@/lib/supabase-data"
+import { getProductBySlug } from "@/lib/supabase-data"
 import type { Metadata } from "next"
 
-export async function generateStaticParams() {
-  try {
-    const products = await getProducts()
-    return products.map((p) => ({ slug: p.slug }))
-  } catch {
-    return []
-  }
-}
+export const dynamic = "force-dynamic"
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params
   try {
     const product = await getProductBySlug(slug)
-    if (!product) return { title: "Product Not Found" }
+    if (!product) return { title: "Product Not Found | Kallittos Fashions" }
     const desc = product.description.slice(0, 155) + (product.description.length > 155 ? "..." : "")
     return {
-      title: product.name,
+      title: `${product.name} | Kallittos Fashions`,
       description: `${desc} | Shop curated thrift & new denim at Kallittos Fashions.`,
       keywords: [
         product.name, "Kallittos Fashions", "thrift denim Kenya",
@@ -40,7 +33,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       },
     }
   } catch {
-    return { title: "Product Not Found" }
+    return { title: "Product Not Found | Kallittos Fashions" }
   }
 }
 
