@@ -39,7 +39,7 @@ export default function LoginPage() {
     // Update last_login
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
-      await supabase.from("admin_users").update({ last_login: new Date().toISOString() }).eq("id", user.id)
+      await supabase.from("admin_users").update({ last_login: new Date().toISOString() }).eq("email", user.email)
     }
 
     router.push("/admin")

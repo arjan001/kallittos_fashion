@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   const { data: currentUser } = await supabase
     .from("admin_users")
     .select("role")
-    .eq("id", user.id)
+    .eq("email", user.email)
     .single()
 
   if (currentUser?.role !== "super_admin") {
@@ -28,14 +28,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 })
   }
 
-  // Use the service role admin client to create the user
-  // This does NOT affect the currently logged-in admin's session
   const adminClient = createAdminClient()
 
+  // Check if user already exists in auth
+  const { data: existingUsers } = await adminClient.auth.admin.listUsers()
+  const existingAuth = existingUsers?.users?.find((u) => u.email === email)
+
+  if (existingAuth) {
+    return NextResponse.json({ error: "A user with this email already exists" }, { status: 400 })
+  }
+
+  // Create auth user with service role (doesn't affect admin's session)
   const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
     email,
     password,
-    email_confirm: true, // Auto-confirm the email
+    email_confirm: true,
     user_metadata: {
       display_name: displayName,
       role,
@@ -46,12 +53,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: createError.message }, { status: 400 })
   }
 
-  // The DB trigger auto-creates the admin_users row, but let's ensure the role is correct
+  // The trigger creates admin_users row, but update to ensure correct role
+  // Use email match since the trigger generates its own UUID for admin_users.id
   if (newUser?.user) {
-    await adminClient
+    // Small delay to let trigger complete
+    await new Promise((r) => setTimeout(r, 500))
+
+    const { error: updateError } = await adminClient
       .from("admin_users")
       .update({ role, display_name: displayName, is_active: true })
-      .eq("id", newUser.user.id)
+      .eq("email", email)
+
+    // If trigger didn't fire or row doesn't exist, insert directly
+    if (updateError) {
+      await adminClient
+        .from("admin_users")
+        .insert({ id: crypto.randomUUID(), email, display_name: displayName, role, is_active: true })
+    }
   }
 
   return NextResponse.json({ success: true })

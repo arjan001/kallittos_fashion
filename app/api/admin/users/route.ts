@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { NextResponse } from "next/server"
 
 export async function GET() {
@@ -20,11 +21,10 @@ export async function PUT(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  // Check if requesting user is super_admin
   const { data: currentUser } = await supabase
     .from("admin_users")
     .select("role")
-    .eq("id", user.id)
+    .eq("email", user.email)
     .single()
 
   if (currentUser?.role !== "super_admin") {
@@ -55,11 +55,10 @@ export async function DELETE(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  // Check if requesting user is super_admin
   const { data: currentUser } = await supabase
     .from("admin_users")
     .select("role")
-    .eq("id", user.id)
+    .eq("email", user.email)
     .single()
 
   if (currentUser?.role !== "super_admin") {
@@ -70,16 +69,38 @@ export async function DELETE(request: Request) {
   const id = searchParams.get("id")
   if (!id) return NextResponse.json({ error: "Missing user id" }, { status: 400 })
 
-  // Prevent self-delete
-  if (id === user.id) {
+  // Get the target user's email to check it's not self-delete
+  const { data: targetUser } = await supabase
+    .from("admin_users")
+    .select("email")
+    .eq("id", id)
+    .single()
+
+  if (targetUser?.email === user.email) {
     return NextResponse.json({ error: "Cannot delete your own account" }, { status: 400 })
   }
 
+  // Delete from admin_users
   const { error } = await supabase
     .from("admin_users")
     .delete()
     .eq("id", id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Also delete from auth if possible
+  if (targetUser?.email) {
+    try {
+      const adminClient = createAdminClient()
+      const { data: authUsers } = await adminClient.auth.admin.listUsers()
+      const authUser = authUsers?.users?.find((u) => u.email === targetUser.email)
+      if (authUser) {
+        await adminClient.auth.admin.deleteUser(authUser.id)
+      }
+    } catch {
+      // Non-critical - admin_users row already deleted
+    }
+  }
+
   return NextResponse.json({ success: true })
 }

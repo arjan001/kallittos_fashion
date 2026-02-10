@@ -54,7 +54,7 @@ export function AdminShell({ children, title }: { children: ReactNode; title: st
         const { data } = await supabase
           .from("admin_users")
           .select("display_name, email, role")
-          .eq("id", user.id)
+          .eq("email", user.email)
           .single()
         if (data) setCurrentUser(data)
         else setCurrentUser({ display_name: user.email || "Admin", email: user.email || "", role: "admin" })
