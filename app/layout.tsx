@@ -15,9 +15,9 @@ const playfair = Playfair_Display({
 })
 
 export const metadata: Metadata = {
-  title: "PreciousGems - Curated Fashion & Thrift",
+  title: "Kallitos Fashion - Thrift & New Fashion",
   description:
-    "Discover elegant thrifted and new fashion pieces. Dresses, tops, bodysuits, jackets, jewellery and more. Shop now with WhatsApp checkout.",
+    "Discover curated thrifted and brand-new fashion pieces at Kallitos Fashion. Dresses, tops, bodysuits, jackets, jewellery and more. Order via WhatsApp.",
 }
 
 export const viewport: Viewport = {

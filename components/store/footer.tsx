@@ -9,10 +9,10 @@ export function Footer() {
           {/* Brand */}
           <div>
             <Link href="/" className="font-serif text-2xl font-bold tracking-tight">
-              PreciousGems
+              Kallitos Fashion
             </Link>
             <p className="text-background/60 text-sm mt-4 leading-relaxed max-w-xs">
-              Curated thrift and new fashion pieces. Elegance made affordable, delivered to your doorstep.
+              Curated thrift and brand-new fashion pieces. Style made affordable, delivered to your doorstep.
             </p>
             <div className="flex items-center gap-4 mt-6">
               <a
@@ -113,8 +113,8 @@ export function Footer() {
               </div>
               <div className="flex items-center gap-3">
                 <Mail className="h-4 w-4 text-background/40 flex-shrink-0" />
-                <a href="mailto:info@preciousgemske.com" className="text-background/60 text-sm hover:text-background transition-colors">
-                  info@preciousgemske.com
+                <a href="mailto:info@kallitosfashion.com" className="text-background/60 text-sm hover:text-background transition-colors">
+                  info@kallitosfashion.com
                 </a>
               </div>
               <div className="flex items-start gap-3">
@@ -132,7 +132,7 @@ export function Footer() {
         {/* Bottom */}
         <div className="mt-12 pt-8 border-t border-background/10 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-background/40 text-xs">
-            {"2026 PreciousGems. All rights reserved."}
+            {"2026 Kallitos Fashion. All rights reserved."}
           </p>
           <div className="flex items-center gap-6">
             <Link href="#" className="text-background/40 text-xs hover:text-background transition-colors">

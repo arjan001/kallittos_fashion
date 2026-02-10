@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import { Plus, Pencil, Trash2, X, Upload, Search } from "lucide-react"
+import { Plus, Pencil, Trash2, X, Upload, Search, Download, FileUp, Copy } from "lucide-react"
 import { AdminShell } from "./admin-shell"
 import { products as initialProducts, categories, formatPrice } from "@/lib/data"
 import type { Product, ProductVariation } from "@/lib/types"
@@ -51,6 +51,9 @@ export function AdminProducts() {
   const [form, setForm] = useState<ProductForm>(emptyForm)
   const [searchQuery, setSearchQuery] = useState("")
   const [newImageUrl, setNewImageUrl] = useState("")
+  const [showImport, setShowImport] = useState(false)
+  const [importCsv, setImportCsv] = useState("")
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   const filtered = productsList.filter(
     (p) =>
@@ -163,6 +166,83 @@ export function AdminProducts() {
     }))
   }
 
+  const handleExport = () => {
+    const headers = "Name,Price,Original Price,Category,Description,Images,Tags,Is New,Is On Offer,Offer %,In Stock"
+    const rows = productsList.map((p) =>
+      [
+        `"${p.name}"`,
+        p.price,
+        p.originalPrice || "",
+        p.category,
+        `"${p.description.replace(/"/g, '""')}"`,
+        `"${p.images.join("|")}"`,
+        `"${p.tags.join(", ")}"`,
+        p.isNew ? "yes" : "no",
+        p.isOnOffer ? "yes" : "no",
+        p.offerPercentage || "",
+        p.inStock ? "yes" : "no",
+      ].join(",")
+    )
+    const csv = [headers, ...rows].join("\n")
+    const blob = new Blob([csv], { type: "text/csv" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = "kallitos-products.csv"
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleImport = () => {
+    if (!importCsv.trim()) return
+    const lines = importCsv.trim().split("\n")
+    const dataLines = lines[0].toLowerCase().includes("name") ? lines.slice(1) : lines
+    const imported: Product[] = dataLines.map((line, idx) => {
+      const parts = line.match(/(".*?"|[^,]+)/g)?.map((s) => s.replace(/^"|"$/g, "").trim()) || []
+      const name = parts[0] || `Product ${idx + 1}`
+      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
+      return {
+        id: `imp-${Date.now()}-${idx}`,
+        name,
+        slug,
+        price: Number.parseFloat(parts[1]) || 0,
+        originalPrice: parts[2] ? Number.parseFloat(parts[2]) : undefined,
+        images: parts[5] ? parts[5].split("|").filter(Boolean) : ["/placeholder.svg?height=800&width=600"],
+        category: parts[3] || "Uncategorized",
+        categorySlug: (parts[3] || "uncategorized").toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+        description: parts[4] || "",
+        tags: parts[6] ? parts[6].split(",").map((t) => t.trim()).filter(Boolean) : [],
+        isNew: parts[7]?.toLowerCase() === "yes",
+        isOnOffer: parts[8]?.toLowerCase() === "yes",
+        offerPercentage: parts[9] ? Number.parseInt(parts[9]) : undefined,
+        inStock: parts[10]?.toLowerCase() !== "no",
+        createdAt: new Date().toISOString().split("T")[0],
+      }
+    })
+    setProductsList((prev) => [...imported, ...prev])
+    setImportCsv("")
+    setShowImport(false)
+  }
+
+  const handleBulkDelete = () => {
+    setProductsList((prev) => prev.filter((p) => !selectedIds.has(p.id)))
+    setSelectedIds(new Set())
+  }
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filtered.length) setSelectedIds(new Set())
+    else setSelectedIds(new Set(filtered.map((p) => p.id)))
+  }
+
   return (
     <AdminShell title="Products">
       <div className="space-y-6">
@@ -171,10 +251,20 @@ export function AdminProducts() {
             <h1 className="text-2xl font-serif font-bold">Products</h1>
             <p className="text-sm text-muted-foreground mt-1">{productsList.length} products</p>
           </div>
-          <Button onClick={openNew} className="bg-foreground text-background hover:bg-foreground/90">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Product
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleExport} className="bg-transparent hidden sm:flex">
+              <Download className="h-4 w-4 mr-1" />
+              Export
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setShowImport(true)} className="bg-transparent hidden sm:flex">
+              <FileUp className="h-4 w-4 mr-1" />
+              Import
+            </Button>
+            <Button onClick={openNew} className="bg-foreground text-background hover:bg-foreground/90">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Product
+            </Button>
+          </div>
         </div>
 
         {/* Search */}
@@ -188,12 +278,29 @@ export function AdminProducts() {
           />
         </div>
 
+        {/* Bulk Actions */}
+        {selectedIds.size > 0 && (
+          <div className="flex items-center gap-3 bg-secondary p-3 rounded-sm">
+            <span className="text-sm font-medium">{selectedIds.size} selected</span>
+            <Button variant="outline" size="sm" onClick={handleBulkDelete} className="bg-transparent text-destructive border-destructive hover:bg-destructive hover:text-background">
+              <Trash2 className="h-3.5 w-3.5 mr-1" />
+              Delete Selected
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setSelectedIds(new Set())} className="bg-transparent">
+              Clear Selection
+            </Button>
+          </div>
+        )}
+
         {/* Products Table */}
         <div className="border border-border rounded-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-secondary">
+                  <th className="w-10 px-4 py-3">
+                    <input type="checkbox" checked={selectedIds.size === filtered.length && filtered.length > 0} onChange={toggleSelectAll} className="rounded-sm" />
+                  </th>
                   <th className="text-left px-4 py-3 font-medium">Product</th>
                   <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">Category</th>
                   <th className="text-left px-4 py-3 font-medium">Price</th>
@@ -204,6 +311,9 @@ export function AdminProducts() {
               <tbody className="divide-y divide-border">
                 {filtered.map((product) => (
                   <tr key={product.id} className="hover:bg-secondary/50 transition-colors">
+                    <td className="w-10 px-4 py-3">
+                      <input type="checkbox" checked={selectedIds.has(product.id)} onChange={() => toggleSelect(product.id)} className="rounded-sm" />
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="relative w-10 h-12 bg-secondary rounded-sm overflow-hidden flex-shrink-0">
@@ -422,6 +532,44 @@ export function AdminProducts() {
                 className="bg-foreground text-background hover:bg-foreground/90"
               >
                 {editingId ? "Update Product" : "Add Product"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {/* Import Modal */}
+      <Dialog open={showImport} onOpenChange={setShowImport}>
+        <DialogContent className="max-w-xl bg-background text-foreground">
+          <DialogHeader>
+            <DialogTitle className="font-serif">Bulk Import Products</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div className="border border-border rounded-sm p-4 bg-secondary/50">
+              <h4 className="text-sm font-semibold mb-2">CSV Format</h4>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Paste CSV data with columns: Name, Price, Original Price, Category, Description, Images (pipe-separated), Tags (comma-separated), Is New (yes/no), Is On Offer (yes/no), Offer %, In Stock (yes/no)
+              </p>
+              <div className="mt-2 bg-background p-2 rounded-sm border border-border">
+                <code className="text-[10px] text-muted-foreground block break-all">
+                  {"\"Floral Maxi Dress\",4500,6000,Dresses,\"Beautiful floral print\",\"url1|url2\",\"floral,summer\",yes,yes,25,yes"}
+                </code>
+              </div>
+            </div>
+            <div>
+              <Label className="text-sm font-medium mb-1.5 block">Paste CSV Data</Label>
+              <textarea
+                value={importCsv}
+                onChange={(e) => setImportCsv(e.target.value)}
+                rows={8}
+                className="w-full border border-border rounded-sm p-3 text-xs font-mono bg-background text-foreground resize-none outline-none focus:ring-1 focus:ring-ring"
+                placeholder={"Name,Price,Original Price,Category,Description,Images,Tags,Is New,Is On Offer,Offer %,In Stock\n\"Floral Maxi Dress\",4500,6000,Dresses,\"Beautiful dress\",\"url1|url2\",\"floral\",yes,yes,25,yes"}
+              />
+            </div>
+            <div className="flex justify-end gap-3 pt-4 border-t border-border">
+              <Button variant="outline" onClick={() => setShowImport(false)}>Cancel</Button>
+              <Button onClick={handleImport} disabled={!importCsv.trim()} className="bg-foreground text-background hover:bg-foreground/90">
+                <FileUp className="h-4 w-4 mr-2" />
+                Import Products
               </Button>
             </div>
           </div>

@@ -30,7 +30,7 @@ export function Navbar() {
             <SheetContent side="left" className="w-80 bg-background text-foreground p-0">
               <div className="p-6">
                 <Link href="/" className="font-serif text-2xl font-bold tracking-tight">
-                  PreciousGems
+                  Kallitos Fashion
                 </Link>
               </div>
               <nav className="flex flex-col px-6 gap-1">
@@ -67,7 +67,7 @@ export function Navbar() {
 
           {/* Logo */}
           <Link href="/" className="font-serif text-xl lg:text-2xl font-bold tracking-tight">
-            PreciousGems
+            Kallitos Fashion
           </Link>
 
           {/* Desktop Search */}
