@@ -2,26 +2,35 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import { Plus, Pencil, Trash2, Search, GripVertical } from "lucide-react"
+import { Plus, Pencil, Trash2, Search } from "lucide-react"
 import { AdminShell } from "./admin-shell"
-import { categories as initialCategories } from "@/lib/data"
-import type { Category } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import useSWR from "swr"
+
+const fetcher = (url: string) => fetch(url).then((r) => r.json())
+
+interface AdminCategory {
+  id: string
+  name: string
+  slug: string
+  image: string
+  productCount: number
+  isActive: boolean
+}
 
 interface CategoryForm {
   name: string
   slug: string
   image: string
-  productCount: number
 }
 
-const emptyForm: CategoryForm = { name: "", slug: "", image: "", productCount: 0 }
+const emptyForm: CategoryForm = { name: "", slug: "", image: "" }
 
 export function AdminCategories() {
-  const [cats, setCats] = useState<Category[]>(initialCategories)
+  const { data: cats = [], mutate } = useSWR<AdminCategory[]>("/api/admin/categories", fetcher)
   const [isOpen, setIsOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [form, setForm] = useState<CategoryForm>(emptyForm)
@@ -31,37 +40,27 @@ export function AdminCategories() {
     c.name.toLowerCase().includes(search.toLowerCase())
   )
 
-  const openNew = () => {
-    setEditId(null)
-    setForm(emptyForm)
-    setIsOpen(true)
-  }
-
-  const openEdit = (cat: Category) => {
+  const openNew = () => { setEditId(null); setForm(emptyForm); setIsOpen(true) }
+  const openEdit = (cat: AdminCategory) => {
     setEditId(cat.id)
-    setForm({ name: cat.name, slug: cat.slug, image: cat.image, productCount: cat.productCount })
+    setForm({ name: cat.name, slug: cat.slug, image: cat.image })
     setIsOpen(true)
   }
 
-  const handleSave = () => {
-    const slug = form.slug || form.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
-    const cat: Category = {
-      id: editId || Date.now().toString(),
-      name: form.name,
-      slug,
-      image: form.image || "/placeholder.svg?height=500&width=400",
-      productCount: form.productCount,
-    }
-    if (editId) {
-      setCats((prev) => prev.map((c) => (c.id === editId ? cat : c)))
-    } else {
-      setCats((prev) => [...prev, cat])
-    }
+  const handleSave = async () => {
+    const body = { id: editId, name: form.name, slug: form.slug, image: form.image }
+    await fetch("/api/admin/categories", {
+      method: editId ? "PUT" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    })
+    mutate()
     setIsOpen(false)
   }
 
-  const handleDelete = (id: string) => {
-    setCats((prev) => prev.filter((c) => c.id !== id))
+  const handleDelete = async (id: string) => {
+    await fetch(`/api/admin/categories?id=${id}`, { method: "DELETE" })
+    mutate()
   }
 
   return (
@@ -118,7 +117,7 @@ export function AdminCategories() {
           <div className="space-y-4 mt-4">
             <div>
               <Label className="text-sm font-medium mb-1.5 block">Category Name *</Label>
-              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Dresses" />
+              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Skinny Jeans" />
             </div>
             <div>
               <Label className="text-sm font-medium mb-1.5 block">Slug</Label>
@@ -129,7 +128,7 @@ export function AdminCategories() {
               <Input value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} placeholder="https://..." />
             </div>
             <div className="flex justify-end gap-3 pt-4 border-t border-border">
-              <Button variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setIsOpen(false)} className="bg-transparent">Cancel</Button>
               <Button onClick={handleSave} disabled={!form.name} className="bg-foreground text-background hover:bg-foreground/90">
                 {editId ? "Update" : "Add"} Category
               </Button>

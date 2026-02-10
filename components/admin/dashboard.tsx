@@ -1,41 +1,33 @@
 "use client"
 
-import { Package, Tag, Percent, TrendingUp, ShoppingBag, Eye } from "lucide-react"
+import { Package, Tag, Percent, TrendingUp, ShoppingBag, Eye, ShoppingCart } from "lucide-react"
 import { AdminShell } from "./admin-shell"
-import { products, categories, offers } from "@/lib/data"
 import { formatPrice } from "@/lib/data"
 import Link from "next/link"
+import useSWR from "swr"
 
-const stats = [
-  {
-    label: "Total Products",
-    value: products.length.toString(),
-    icon: Package,
-    change: "+3 this week",
-  },
-  {
-    label: "Categories",
-    value: categories.length.toString(),
-    icon: Tag,
-    change: "6 active",
-  },
-  {
-    label: "Active Offers",
-    value: offers.length.toString(),
-    icon: Percent,
-    change: "2 running",
-  },
-  {
-    label: "Revenue (Est.)",
-    value: formatPrice(145000),
-    icon: TrendingUp,
-    change: "+12% vs last month",
-  },
-]
+const fetcher = (url: string) => fetch(url).then((r) => r.json())
+
+interface DashboardData {
+  stats: { totalProducts: number; totalCategories: number; activeOffers: number; totalOrders: number; totalRevenue: number }
+  recentProducts: { id: string; name: string; price: number; category: string }[]
+  offerProducts: { id: string; name: string; price: number; originalPrice: number | null; offerPercentage: number }[]
+  recentOrders: { id: string; orderNo: string; customer: string; total: number; status: string; date: string }[]
+}
 
 export function AdminDashboard() {
-  const recentProducts = products.slice(0, 5)
-  const offerProducts = products.filter((p) => p.isOnOffer).slice(0, 5)
+  const { data } = useSWR<DashboardData>("/api/admin/dashboard", fetcher)
+
+  const stats = [
+    { label: "Total Products", value: data?.stats.totalProducts?.toString() || "0", icon: Package, change: "Live from DB" },
+    { label: "Categories", value: data?.stats.totalCategories?.toString() || "0", icon: Tag, change: "Active" },
+    { label: "Active Offers", value: data?.stats.activeOffers?.toString() || "0", icon: Percent, change: "Running" },
+    { label: "Total Orders", value: data?.stats.totalOrders?.toString() || "0", icon: ShoppingCart, change: formatPrice(data?.stats.totalRevenue || 0) + " revenue" },
+  ]
+
+  const recentProducts = data?.recentProducts || []
+  const offerProducts = data?.offerProducts || []
+  const recentOrders = data?.recentOrders || []
 
   return (
     <AdminShell title="Dashboard">
@@ -45,7 +37,6 @@ export function AdminDashboard() {
           <p className="text-sm text-muted-foreground mt-1">Welcome back. Here{"'"}s an overview of your store.</p>
         </div>
 
-        {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((stat) => (
             <div key={stat.label} className="border border-border p-5 rounded-sm">
@@ -59,48 +50,26 @@ export function AdminDashboard() {
           ))}
         </div>
 
-        {/* Quick Actions */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Link
-            href="/admin/products"
-            className="flex items-center gap-3 border border-border p-4 rounded-sm hover:bg-secondary transition-colors"
-          >
+          <Link href="/admin/products" className="flex items-center gap-3 border border-border p-4 rounded-sm hover:bg-secondary transition-colors">
             <Package className="h-5 w-5" />
-            <div>
-              <p className="text-sm font-medium">Manage Products</p>
-              <p className="text-xs text-muted-foreground">Add, edit or remove products</p>
-            </div>
+            <div><p className="text-sm font-medium">Manage Products</p><p className="text-xs text-muted-foreground">Add, edit or remove products</p></div>
           </Link>
-          <Link
-            href="/admin/offers"
-            className="flex items-center gap-3 border border-border p-4 rounded-sm hover:bg-secondary transition-colors"
-          >
-            <Percent className="h-5 w-5" />
-            <div>
-              <p className="text-sm font-medium">Manage Offers</p>
-              <p className="text-xs text-muted-foreground">Create or edit offers</p>
-            </div>
+          <Link href="/admin/orders" className="flex items-center gap-3 border border-border p-4 rounded-sm hover:bg-secondary transition-colors">
+            <ShoppingCart className="h-5 w-5" />
+            <div><p className="text-sm font-medium">View Orders</p><p className="text-xs text-muted-foreground">Manage customer orders</p></div>
           </Link>
-          <Link
-            href="/"
-            className="flex items-center gap-3 border border-border p-4 rounded-sm hover:bg-secondary transition-colors"
-          >
+          <Link href="/" className="flex items-center gap-3 border border-border p-4 rounded-sm hover:bg-secondary transition-colors">
             <Eye className="h-5 w-5" />
-            <div>
-              <p className="text-sm font-medium">View Store</p>
-              <p className="text-xs text-muted-foreground">See how customers see it</p>
-            </div>
+            <div><p className="text-sm font-medium">View Store</p><p className="text-xs text-muted-foreground">See how customers see it</p></div>
           </Link>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Recent Products */}
           <div className="border border-border rounded-sm">
             <div className="flex items-center justify-between px-5 py-3 border-b border-border">
               <h2 className="text-sm font-semibold">Recent Products</h2>
-              <Link href="/admin/products" className="text-xs text-muted-foreground hover:text-foreground">
-                View All
-              </Link>
+              <Link href="/admin/products" className="text-xs text-muted-foreground hover:text-foreground">View All</Link>
             </div>
             <div className="divide-y divide-border">
               {recentProducts.map((product) => (
@@ -115,35 +84,36 @@ export function AdminDashboard() {
                   <span className="text-sm font-medium">{formatPrice(product.price)}</span>
                 </div>
               ))}
+              {recentProducts.length === 0 && (
+                <div className="px-5 py-8 text-center text-sm text-muted-foreground">No products yet</div>
+              )}
             </div>
           </div>
 
-          {/* Offer Products */}
           <div className="border border-border rounded-sm">
             <div className="flex items-center justify-between px-5 py-3 border-b border-border">
-              <h2 className="text-sm font-semibold">Products On Offer</h2>
-              <Link href="/admin/offers" className="text-xs text-muted-foreground hover:text-foreground">
-                View All
-              </Link>
+              <h2 className="text-sm font-semibold">Recent Orders</h2>
+              <Link href="/admin/orders" className="text-xs text-muted-foreground hover:text-foreground">View All</Link>
             </div>
             <div className="divide-y divide-border">
-              {offerProducts.map((product) => (
-                <div key={product.id} className="flex items-center justify-between px-5 py-3">
+              {recentOrders.map((order) => (
+                <div key={order.id} className="flex items-center justify-between px-5 py-3">
                   <div className="flex items-center gap-3">
-                    <Percent className="h-4 w-4 text-muted-foreground" />
+                    <ShoppingCart className="h-4 w-4 text-muted-foreground" />
                     <div>
-                      <p className="text-sm font-medium">{product.name}</p>
-                      <p className="text-xs text-muted-foreground">-{product.offerPercentage}% off</p>
+                      <p className="text-sm font-medium">{order.orderNo}</p>
+                      <p className="text-xs text-muted-foreground">{order.customer}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-medium">{formatPrice(product.price)}</p>
-                    {product.originalPrice && (
-                      <p className="text-xs text-muted-foreground line-through">{formatPrice(product.originalPrice)}</p>
-                    )}
+                    <span className="text-sm font-medium">{formatPrice(order.total)}</span>
+                    <p className="text-[10px] text-muted-foreground uppercase">{order.status}</p>
                   </div>
                 </div>
               ))}
+              {recentOrders.length === 0 && (
+                <div className="px-5 py-8 text-center text-sm text-muted-foreground">No orders yet</div>
+              )}
             </div>
           </div>
         </div>

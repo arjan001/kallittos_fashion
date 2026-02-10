@@ -5,7 +5,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { X } from "lucide-react"
 import { offers } from "@/lib/data"
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 
 export function OfferModal() {
   const [isOpen, setIsOpen] = useState(false)
@@ -28,8 +28,9 @@ export function OfferModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="sm:max-w-lg p-0 overflow-hidden bg-background border-border gap-0" aria-describedby={undefined}>
+      <DialogContent className="sm:max-w-lg p-0 overflow-hidden bg-background border-border gap-0 [&>button:last-child]:hidden">
         <DialogTitle className="sr-only">{offer.title}</DialogTitle>
+        <DialogDescription className="sr-only">{offer.description}</DialogDescription>
         <div className="relative h-48 sm:h-56">
           <Image
             src={offer.image || "/placeholder.svg"}

@@ -2,10 +2,8 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import { Plus, Pencil, Trash2, Eye, EyeOff, Megaphone } from "lucide-react"
+import { Plus, Pencil, Trash2, Megaphone } from "lucide-react"
 import { AdminShell } from "./admin-shell"
-import { offers as initialOffers, runningOffers as initialRunning } from "@/lib/data"
-import type { Offer } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -13,76 +11,94 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import useSWR from "swr"
 
-interface Banner {
+const fetcher = (url: string) => fetch(url).then((r) => r.json())
+
+interface BannerData {
   id: string
   title: string
-  subtitle: string
-  image: string
-  link: string
-  active: boolean
-  position: "hero" | "mid-page"
+  subtitle: string | null
+  image_url: string | null
+  link_url: string
+  position: string
+  is_active: boolean
 }
 
-interface NavbarOffer {
+interface NavOfferData {
   id: string
   text: string
-  active: boolean
+  is_active: boolean
 }
 
-const mockBanners: Banner[] = [
-  { id: "1", title: "Up To 40% Off Latest Creations", subtitle: "New Collection 2026", image: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1200&h=700&fit=crop", link: "/shop", active: true, position: "hero" },
-  { id: "2", title: "Season Sale", subtitle: "Limited Offer", image: "https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=700&h=400&fit=crop", link: "/shop?filter=offers", active: true, position: "mid-page" },
-  { id: "3", title: "New Arrivals", subtitle: "Just Dropped", image: "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=700&h=400&fit=crop", link: "/shop?filter=new", active: true, position: "mid-page" },
-]
+interface PopupData {
+  id: string
+  title: string
+  description: string | null
+  discount_percentage: number | null
+  image_url: string | null
+  is_active: boolean
+}
 
 export function AdminBanners() {
-  const [banners, setBanners] = useState<Banner[]>(mockBanners)
-  const [navOffers, setNavOffers] = useState<NavbarOffer[]>(
-    initialRunning.map((text, i) => ({ id: (i + 1).toString(), text, active: true }))
-  )
-  const [offersList, setOffersList] = useState<Offer[]>(initialOffers)
+  const { data, mutate } = useSWR<{ banners: BannerData[]; navbarOffers: NavOfferData[]; popupOffers: PopupData[] }>("/api/admin/banners", fetcher)
+  const banners = data?.banners || []
+  const navOffers = data?.navbarOffers || []
+  const popupOffers = data?.popupOffers || []
 
   // Banner modal
   const [bannerModal, setBannerModal] = useState(false)
-  const [editBanner, setEditBanner] = useState<Banner | null>(null)
-  const [bannerForm, setBannerForm] = useState({ title: "", subtitle: "", image: "", link: "", position: "hero" as "hero" | "mid-page" })
+  const [editBanner, setEditBanner] = useState<BannerData | null>(null)
+  const [bannerForm, setBannerForm] = useState({ title: "", subtitle: "", image: "", link: "", position: "hero" as string })
 
-  // Navbar offer modal
+  // Nav offer modal
   const [navModal, setNavModal] = useState(false)
-  const [editNav, setEditNav] = useState<NavbarOffer | null>(null)
+  const [editNav, setEditNav] = useState<NavOfferData | null>(null)
   const [navText, setNavText] = useState("")
 
-  // Offer modal
-  const [offerModal, setOfferModal] = useState(false)
-  const [editOffer, setEditOffer] = useState<Offer | null>(null)
-  const [offerForm, setOfferForm] = useState({ title: "", description: "", discount: "", image: "", validUntil: "" })
+  // Popup offer modal
+  const [popupModal, setPopupModal] = useState(false)
+  const [editPopup, setEditPopup] = useState<PopupData | null>(null)
+  const [popupForm, setPopupForm] = useState({ title: "", description: "", discountPercentage: "", image: "" })
 
+  // Banner CRUD
   const openBannerNew = () => { setEditBanner(null); setBannerForm({ title: "", subtitle: "", image: "", link: "", position: "hero" }); setBannerModal(true) }
-  const openBannerEdit = (b: Banner) => { setEditBanner(b); setBannerForm({ title: b.title, subtitle: b.subtitle, image: b.image, link: b.link, position: b.position }); setBannerModal(true) }
-  const saveBanner = () => {
-    const b: Banner = { id: editBanner?.id || Date.now().toString(), ...bannerForm, active: editBanner?.active ?? true }
-    if (editBanner) setBanners((prev) => prev.map((x) => (x.id === editBanner.id ? b : x)))
-    else setBanners((prev) => [...prev, b])
-    setBannerModal(false)
+  const openBannerEdit = (b: BannerData) => { setEditBanner(b); setBannerForm({ title: b.title, subtitle: b.subtitle || "", image: b.image_url || "", link: b.link_url, position: b.position }); setBannerModal(true) }
+  const saveBanner = async () => {
+    await fetch("/api/admin/banners", {
+      method: editBanner ? "PUT" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "banner", id: editBanner?.id, title: bannerForm.title, subtitle: bannerForm.subtitle, image: bannerForm.image, link: bannerForm.link, position: bannerForm.position, isActive: editBanner?.is_active ?? true }),
+    })
+    mutate(); setBannerModal(false)
+  }
+  const deleteBanner = async (id: string) => { await fetch(`/api/admin/banners?id=${id}&type=banner`, { method: "DELETE" }); mutate() }
+  const toggleBanner = async (b: BannerData) => {
+    await fetch("/api/admin/banners", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "banner", id: b.id, title: b.title, subtitle: b.subtitle, image: b.image_url, link: b.link_url, position: b.position, isActive: !b.is_active }) })
+    mutate()
   }
 
+  // Nav CRUD
   const openNavNew = () => { setEditNav(null); setNavText(""); setNavModal(true) }
-  const openNavEdit = (n: NavbarOffer) => { setEditNav(n); setNavText(n.text); setNavModal(true) }
-  const saveNav = () => {
-    if (editNav) setNavOffers((prev) => prev.map((n) => (n.id === editNav.id ? { ...n, text: navText } : n)))
-    else setNavOffers((prev) => [...prev, { id: Date.now().toString(), text: navText, active: true }])
-    setNavModal(false)
+  const openNavEdit = (n: NavOfferData) => { setEditNav(n); setNavText(n.text); setNavModal(true) }
+  const saveNav = async () => {
+    await fetch("/api/admin/banners", { method: editNav ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "navbar_offer", id: editNav?.id, text: navText, isActive: editNav?.is_active ?? true }) })
+    mutate(); setNavModal(false)
+  }
+  const deleteNav = async (id: string) => { await fetch(`/api/admin/banners?id=${id}&type=navbar_offer`, { method: "DELETE" }); mutate() }
+  const toggleNav = async (n: NavOfferData) => {
+    await fetch("/api/admin/banners", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "navbar_offer", id: n.id, text: n.text, isActive: !n.is_active }) })
+    mutate()
   }
 
-  const openOfferNew = () => { setEditOffer(null); setOfferForm({ title: "", description: "", discount: "", image: "", validUntil: "" }); setOfferModal(true) }
-  const openOfferEdit = (o: Offer) => { setEditOffer(o); setOfferForm({ title: o.title, description: o.description, discount: o.discount, image: o.image, validUntil: o.validUntil }); setOfferModal(true) }
-  const saveOffer = () => {
-    const o: Offer = { id: editOffer?.id || Date.now().toString(), ...offerForm }
-    if (editOffer) setOffersList((prev) => prev.map((x) => (x.id === editOffer.id ? o : x)))
-    else setOffersList((prev) => [...prev, o])
-    setOfferModal(false)
+  // Popup CRUD
+  const openPopupNew = () => { setEditPopup(null); setPopupForm({ title: "", description: "", discountPercentage: "", image: "" }); setPopupModal(true) }
+  const openPopupEdit = (p: PopupData) => { setEditPopup(p); setPopupForm({ title: p.title, description: p.description || "", discountPercentage: p.discount_percentage?.toString() || "", image: p.image_url || "" }); setPopupModal(true) }
+  const savePopup = async () => {
+    await fetch("/api/admin/banners", { method: editPopup ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "popup_offer", id: editPopup?.id, title: popupForm.title, description: popupForm.description, discountPercentage: popupForm.discountPercentage ? Number(popupForm.discountPercentage) : null, image: popupForm.image, isActive: editPopup?.is_active ?? true }) })
+    mutate(); setPopupModal(false)
   }
+  const deletePopup = async (id: string) => { await fetch(`/api/admin/banners?id=${id}&type=popup_offer`, { method: "DELETE" }); mutate() }
 
   return (
     <AdminShell title="Offers & Banners">
@@ -94,31 +110,29 @@ export function AdminBanners() {
 
         <Tabs defaultValue="banners">
           <TabsList className="bg-secondary">
-            <TabsTrigger value="banners">Banners</TabsTrigger>
-            <TabsTrigger value="navbar">Navbar Offers</TabsTrigger>
-            <TabsTrigger value="popup">Popup Offers</TabsTrigger>
+            <TabsTrigger value="banners">Banners ({banners.length})</TabsTrigger>
+            <TabsTrigger value="navbar">Navbar Offers ({navOffers.length})</TabsTrigger>
+            <TabsTrigger value="popup">Popup Offers ({popupOffers.length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="banners" className="mt-6 space-y-4">
             <div className="flex justify-end">
-              <Button onClick={openBannerNew} className="bg-foreground text-background hover:bg-foreground/90">
-                <Plus className="h-4 w-4 mr-2" /> Add Banner
-              </Button>
+              <Button onClick={openBannerNew} className="bg-foreground text-background hover:bg-foreground/90"><Plus className="h-4 w-4 mr-2" /> Add Banner</Button>
             </div>
             {banners.map((b) => (
               <div key={b.id} className="flex items-center gap-4 border border-border rounded-sm p-4">
                 <div className="relative w-32 h-20 bg-secondary rounded-sm overflow-hidden flex-shrink-0">
-                  <Image src={b.image || "/placeholder.svg"} alt={b.title} fill className="object-cover" />
+                  <Image src={b.image_url || "/placeholder.svg"} alt={b.title} fill className="object-cover" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-sm font-semibold truncate">{b.title}</h3>
                   <p className="text-xs text-muted-foreground">{b.subtitle} -- {b.position}</p>
-                  <p className="text-xs text-muted-foreground">Link: {b.link}</p>
+                  <p className="text-xs text-muted-foreground">Link: {b.link_url}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Switch checked={b.active} onCheckedChange={(checked) => setBanners((prev) => prev.map((x) => (x.id === b.id ? { ...x, active: checked } : x)))} />
+                  <Switch checked={b.is_active} onCheckedChange={() => toggleBanner(b)} />
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openBannerEdit(b)}><Pencil className="h-3.5 w-3.5" /></Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setBanners((prev) => prev.filter((x) => x.id !== b.id))}><Trash2 className="h-3.5 w-3.5" /></Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteBanner(b.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
                 </div>
               </div>
             ))}
@@ -126,18 +140,16 @@ export function AdminBanners() {
 
           <TabsContent value="navbar" className="mt-6 space-y-4">
             <div className="flex justify-end">
-              <Button onClick={openNavNew} className="bg-foreground text-background hover:bg-foreground/90">
-                <Plus className="h-4 w-4 mr-2" /> Add Offer Text
-              </Button>
+              <Button onClick={openNavNew} className="bg-foreground text-background hover:bg-foreground/90"><Plus className="h-4 w-4 mr-2" /> Add Offer Text</Button>
             </div>
             {navOffers.map((n) => (
               <div key={n.id} className="flex items-center gap-4 border border-border rounded-sm p-4">
                 <Megaphone className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                 <p className="flex-1 text-sm">{n.text}</p>
                 <div className="flex items-center gap-2">
-                  <Switch checked={n.active} onCheckedChange={(checked) => setNavOffers((prev) => prev.map((x) => (x.id === n.id ? { ...x, active: checked } : x)))} />
+                  <Switch checked={n.is_active} onCheckedChange={() => toggleNav(n)} />
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openNavEdit(n)}><Pencil className="h-3.5 w-3.5" /></Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setNavOffers((prev) => prev.filter((x) => x.id !== n.id))}><Trash2 className="h-3.5 w-3.5" /></Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteNav(n.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
                 </div>
               </div>
             ))}
@@ -145,22 +157,20 @@ export function AdminBanners() {
 
           <TabsContent value="popup" className="mt-6 space-y-4">
             <div className="flex justify-end">
-              <Button onClick={openOfferNew} className="bg-foreground text-background hover:bg-foreground/90">
-                <Plus className="h-4 w-4 mr-2" /> Add Popup Offer
-              </Button>
+              <Button onClick={openPopupNew} className="bg-foreground text-background hover:bg-foreground/90"><Plus className="h-4 w-4 mr-2" /> Add Popup Offer</Button>
             </div>
-            {offersList.map((o) => (
-              <div key={o.id} className="flex items-center gap-4 border border-border rounded-sm p-4">
+            {popupOffers.map((p) => (
+              <div key={p.id} className="flex items-center gap-4 border border-border rounded-sm p-4">
                 <div className="relative w-20 h-14 bg-secondary rounded-sm overflow-hidden flex-shrink-0">
-                  <Image src={o.image || "/placeholder.svg"} alt={o.title} fill className="object-cover" />
+                  <Image src={p.image_url || "/placeholder.svg"} alt={p.title} fill className="object-cover" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-semibold">{o.title}</h3>
-                  <p className="text-xs text-muted-foreground">{o.discount} -- Valid until {o.validUntil}</p>
+                  <h3 className="text-sm font-semibold">{p.title}</h3>
+                  <p className="text-xs text-muted-foreground">{p.discount_percentage ? `${p.discount_percentage}% OFF` : "No discount set"}</p>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openOfferEdit(o)}><Pencil className="h-3.5 w-3.5" /></Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setOffersList((prev) => prev.filter((x) => x.id !== o.id))}><Trash2 className="h-3.5 w-3.5" /></Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openPopupEdit(p)}><Pencil className="h-3.5 w-3.5" /></Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deletePopup(p.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
                 </div>
               </div>
             ))}
@@ -185,21 +195,21 @@ export function AdminBanners() {
               </div>
             </div>
             <div className="flex justify-end gap-3 pt-4 border-t border-border">
-              <Button variant="outline" onClick={() => setBannerModal(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setBannerModal(false)} className="bg-transparent">Cancel</Button>
               <Button onClick={saveBanner} disabled={!bannerForm.title} className="bg-foreground text-background hover:bg-foreground/90">{editBanner ? "Update" : "Add"} Banner</Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Navbar Offer Modal */}
+      {/* Nav Offer Modal */}
       <Dialog open={navModal} onOpenChange={setNavModal}>
         <DialogContent className="max-w-md bg-background text-foreground">
           <DialogHeader><DialogTitle className="font-serif">{editNav ? "Edit" : "Add"} Navbar Offer</DialogTitle></DialogHeader>
           <div className="space-y-4 mt-4">
             <div><Label className="text-sm font-medium mb-1.5 block">Offer Text *</Label><Input value={navText} onChange={(e) => setNavText(e.target.value)} placeholder="FREE SHIPPING on orders above KSh 5,000" /></div>
             <div className="flex justify-end gap-3 pt-4 border-t border-border">
-              <Button variant="outline" onClick={() => setNavModal(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setNavModal(false)} className="bg-transparent">Cancel</Button>
               <Button onClick={saveNav} disabled={!navText} className="bg-foreground text-background hover:bg-foreground/90">{editNav ? "Update" : "Add"}</Button>
             </div>
           </div>
@@ -207,20 +217,19 @@ export function AdminBanners() {
       </Dialog>
 
       {/* Popup Offer Modal */}
-      <Dialog open={offerModal} onOpenChange={setOfferModal}>
+      <Dialog open={popupModal} onOpenChange={setPopupModal}>
         <DialogContent className="max-w-md bg-background text-foreground">
-          <DialogHeader><DialogTitle className="font-serif">{editOffer ? "Edit" : "Add"} Popup Offer</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="font-serif">{editPopup ? "Edit" : "Add"} Popup Offer</DialogTitle></DialogHeader>
           <div className="space-y-4 mt-4">
-            <div><Label className="text-sm font-medium mb-1.5 block">Title *</Label><Input value={offerForm.title} onChange={(e) => setOfferForm({ ...offerForm, title: e.target.value })} /></div>
-            <div><Label className="text-sm font-medium mb-1.5 block">Description</Label><Textarea value={offerForm.description} onChange={(e) => setOfferForm({ ...offerForm, description: e.target.value })} rows={3} /></div>
+            <div><Label className="text-sm font-medium mb-1.5 block">Title *</Label><Input value={popupForm.title} onChange={(e) => setPopupForm({ ...popupForm, title: e.target.value })} /></div>
+            <div><Label className="text-sm font-medium mb-1.5 block">Description</Label><Textarea value={popupForm.description} onChange={(e) => setPopupForm({ ...popupForm, description: e.target.value })} rows={3} /></div>
             <div className="grid grid-cols-2 gap-4">
-              <div><Label className="text-sm font-medium mb-1.5 block">Discount Label</Label><Input value={offerForm.discount} onChange={(e) => setOfferForm({ ...offerForm, discount: e.target.value })} placeholder="40% OFF" /></div>
-              <div><Label className="text-sm font-medium mb-1.5 block">Valid Until</Label><Input type="date" value={offerForm.validUntil} onChange={(e) => setOfferForm({ ...offerForm, validUntil: e.target.value })} /></div>
+              <div><Label className="text-sm font-medium mb-1.5 block">Discount %</Label><Input type="number" value={popupForm.discountPercentage} onChange={(e) => setPopupForm({ ...popupForm, discountPercentage: e.target.value })} placeholder="30" /></div>
+              <div><Label className="text-sm font-medium mb-1.5 block">Image URL</Label><Input value={popupForm.image} onChange={(e) => setPopupForm({ ...popupForm, image: e.target.value })} /></div>
             </div>
-            <div><Label className="text-sm font-medium mb-1.5 block">Image URL</Label><Input value={offerForm.image} onChange={(e) => setOfferForm({ ...offerForm, image: e.target.value })} /></div>
             <div className="flex justify-end gap-3 pt-4 border-t border-border">
-              <Button variant="outline" onClick={() => setOfferModal(false)}>Cancel</Button>
-              <Button onClick={saveOffer} disabled={!offerForm.title} className="bg-foreground text-background hover:bg-foreground/90">{editOffer ? "Update" : "Add"} Offer</Button>
+              <Button variant="outline" onClick={() => setPopupModal(false)} className="bg-transparent">Cancel</Button>
+              <Button onClick={savePopup} disabled={!popupForm.title} className="bg-foreground text-background hover:bg-foreground/90">{editPopup ? "Update" : "Add"} Offer</Button>
             </div>
           </div>
         </DialogContent>

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Eye, Truck, CheckCircle, Clock, Package, XCircle, Search, Filter } from "lucide-react"
+import { Eye, Truck, CheckCircle, Clock, Package, XCircle, Search } from "lucide-react"
 import { AdminShell } from "./admin-shell"
 import { formatPrice } from "@/lib/data"
 import { Button } from "@/components/ui/button"
@@ -9,6 +9,9 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import useSWR from "swr"
+
+const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 type OrderStatus = "pending" | "confirmed" | "dispatched" | "delivered" | "cancelled"
 
@@ -26,36 +29,9 @@ interface Order {
   address: string
   notes: string
   status: OrderStatus
+  orderedVia: string
   date: string
 }
-
-const mockOrders: Order[] = [
-  {
-    id: "1", orderNo: "KF-001", customer: "Amina Wanjiku", phone: "0712345678", email: "amina@email.com",
-    items: [{ name: "Elegant Satin Wrap Dress", qty: 1, price: 3500, variation: "Size: M, Color: Blush Pink" }, { name: "Gold Layered Necklace Set", qty: 1, price: 2200 }],
-    subtotal: 5700, delivery: 0, total: 5700, location: "Nairobi CBD", address: "Kenyatta Avenue, Hilton Building", notes: "Please gift wrap", status: "pending", date: "2026-02-10",
-  },
-  {
-    id: "2", orderNo: "KF-002", customer: "Grace Akinyi", phone: "0798765432", email: "",
-    items: [{ name: "Ribbed Crop Top", qty: 2, price: 1200, variation: "Size: S, Color: White" }],
-    subtotal: 2400, delivery: 250, total: 2650, location: "Westlands", address: "Sarit Centre area", notes: "", status: "confirmed", date: "2026-02-09",
-  },
-  {
-    id: "3", orderNo: "KF-003", customer: "Joy Muthoni", phone: "0733111222", email: "joy@mail.com",
-    items: [{ name: "Oversized Linen Blazer", qty: 1, price: 4200, variation: "Size: L, Color: Beige" }, { name: "Classic Black Bodysuit", qty: 1, price: 1800, variation: "Size: M" }],
-    subtotal: 6000, delivery: 0, total: 6000, location: "Karen", address: "Karen Road, near the mall", notes: "", status: "dispatched", date: "2026-02-07",
-  },
-  {
-    id: "4", orderNo: "KF-004", customer: "Sarah Njeri", phone: "0722333444", email: "",
-    items: [{ name: "Floral Print Mini Dress", qty: 1, price: 2800 }],
-    subtotal: 2800, delivery: 600, total: 3400, location: "Nakuru", address: "Town centre", notes: "Call before delivery", status: "delivered", date: "2026-02-05",
-  },
-  {
-    id: "5", orderNo: "KF-005", customer: "Wanjiku Kamau", phone: "0755666777", email: "wanjiku@mail.com",
-    items: [{ name: "Pearl Drop Earrings", qty: 1, price: 1500, variation: "Metal: Gold" }],
-    subtotal: 1500, delivery: 400, total: 1900, location: "Kiambu", address: "Thika Road Mall area", notes: "", status: "cancelled", date: "2026-02-04",
-  },
-]
 
 const statusConfig: Record<OrderStatus, { label: string; icon: typeof Clock; className: string }> = {
   pending: { label: "Pending", icon: Clock, className: "bg-secondary text-foreground" },
@@ -66,7 +42,7 @@ const statusConfig: Record<OrderStatus, { label: string; icon: typeof Clock; cla
 }
 
 export function AdminOrders() {
-  const [orders, setOrders] = useState<Order[]>(mockOrders)
+  const { data: orders = [], mutate } = useSWR<Order[]>("/api/admin/orders", fetcher)
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
@@ -77,8 +53,13 @@ export function AdminOrders() {
     return matchSearch && matchStatus
   })
 
-  const updateStatus = (orderId: string, newStatus: OrderStatus) => {
-    setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)))
+  const updateStatus = async (orderId: string, newStatus: OrderStatus) => {
+    await fetch("/api/admin/orders", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: orderId, status: newStatus }),
+    })
+    mutate()
     if (selectedOrder?.id === orderId) {
       setSelectedOrder((prev) => prev ? { ...prev, status: newStatus } : null)
     }
@@ -100,34 +81,18 @@ export function AdminOrders() {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="border border-border p-4 rounded-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground uppercase tracking-wider">Pending</span>
-              <Clock className="h-4 w-4 text-muted-foreground" />
+          {(Object.entries(stats) as [string, number][]).map(([key, count]) => (
+            <div key={key} className="border border-border p-4 rounded-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground uppercase tracking-wider">{key}</span>
+                {key === "pending" && <Clock className="h-4 w-4 text-muted-foreground" />}
+                {key === "confirmed" && <CheckCircle className="h-4 w-4 text-muted-foreground" />}
+                {key === "dispatched" && <Truck className="h-4 w-4 text-muted-foreground" />}
+                {key === "delivered" && <Package className="h-4 w-4 text-muted-foreground" />}
+              </div>
+              <p className="text-2xl font-bold mt-1">{count}</p>
             </div>
-            <p className="text-2xl font-bold mt-1">{stats.pending}</p>
-          </div>
-          <div className="border border-border p-4 rounded-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground uppercase tracking-wider">Confirmed</span>
-              <CheckCircle className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <p className="text-2xl font-bold mt-1">{stats.confirmed}</p>
-          </div>
-          <div className="border border-border p-4 rounded-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground uppercase tracking-wider">Dispatched</span>
-              <Truck className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <p className="text-2xl font-bold mt-1">{stats.dispatched}</p>
-          </div>
-          <div className="border border-border p-4 rounded-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground uppercase tracking-wider">Delivered</span>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <p className="text-2xl font-bold mt-1">{stats.delivered}</p>
-          </div>
+          ))}
         </div>
 
         <div className="flex items-center gap-4">
@@ -188,6 +153,13 @@ export function AdminOrders() {
                     </tr>
                   )
                 })}
+                {filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                      No orders found
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -205,7 +177,12 @@ export function AdminOrders() {
                 <span className={`inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-sm ${statusConfig[selectedOrder.status].className}`}>
                   {statusConfig[selectedOrder.status].label}
                 </span>
-                <span className="text-xs text-muted-foreground">{selectedOrder.date}</span>
+                <div className="text-right">
+                  <span className="text-xs text-muted-foreground">{selectedOrder.date}</span>
+                  {selectedOrder.orderedVia === "whatsapp" && (
+                    <Badge variant="outline" className="ml-2 text-[10px]">WhatsApp</Badge>
+                  )}
+                </div>
               </div>
 
               <div className="border border-border rounded-sm p-4 space-y-1">
