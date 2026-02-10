@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react"
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react"
 import type { CartItem, Product } from "./types"
 
 interface CartContextType {
@@ -15,18 +15,59 @@ interface CartContextType {
   setIsCartOpen: (open: boolean) => void
 }
 
+const CART_KEY = "kallitos-cart"
+
+function loadCart(): CartItem[] {
+  if (typeof window === "undefined") return []
+  try {
+    const stored = sessionStorage.getItem(CART_KEY)
+    return stored ? JSON.parse(stored) : []
+  } catch {
+    return []
+  }
+}
+
+function saveCart(items: CartItem[]) {
+  if (typeof window === "undefined") return
+  try {
+    sessionStorage.setItem(CART_KEY, JSON.stringify(items))
+  } catch {
+    // silently fail
+  }
+}
+
 const CartContext = createContext<CartContextType | undefined>(undefined)
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
   const [isCartOpen, setIsCartOpen] = useState(false)
+  const [hydrated, setHydrated] = useState(false)
+
+  // Hydrate from sessionStorage on mount
+  useEffect(() => {
+    const stored = loadCart()
+    if (stored.length > 0) {
+      setItems(stored)
+    }
+    setHydrated(true)
+  }, [])
+
+  // Persist to sessionStorage whenever items change (after hydration)
+  useEffect(() => {
+    if (hydrated) {
+      saveCart(items)
+    }
+  }, [items, hydrated])
 
   const addItem = useCallback((product: Product, quantity = 1, variations?: Record<string, string>) => {
     setItems((prev) => {
-      const existing = prev.find((item) => item.product.id === product.id)
+      const variationKey = variations ? JSON.stringify(variations) : ""
+      const existing = prev.find(
+        (item) => item.product.id === product.id && JSON.stringify(item.selectedVariations || {}) === (variationKey || "{}")
+      )
       if (existing) {
         return prev.map((item) =>
-          item.product.id === product.id
+          item.product.id === product.id && JSON.stringify(item.selectedVariations || {}) === (variationKey || "{}")
             ? { ...item, quantity: item.quantity + quantity }
             : item
         )
