@@ -12,7 +12,31 @@ export function OnOfferProducts() {
   const { data: products = [] } = useSWR<Product[]>("/api/products", fetcher)
   const offerProducts = products.filter((p) => p.isOnOffer)
 
-  if (offerProducts.length === 0) return null
+  // If not enough offer products, supplement with mixed items from different categories
+  let displayed = [...offerProducts]
+  if (displayed.length < 4) {
+    const usedIds = new Set(displayed.map((p) => p.id))
+    const usedCats = new Set(displayed.map((p) => p.categorySlug))
+    for (const p of products) {
+      if (displayed.length >= 4) break
+      if (!usedIds.has(p.id) && !usedCats.has(p.categorySlug)) {
+        displayed.push(p)
+        usedIds.add(p.id)
+        usedCats.add(p.categorySlug)
+      }
+    }
+    for (const p of products) {
+      if (displayed.length >= 4) break
+      if (!usedIds.has(p.id)) {
+        displayed.push(p)
+        usedIds.add(p.id)
+      }
+    }
+  }
+
+  displayed = displayed.slice(0, 4)
+
+  if (displayed.length === 0) return null
 
   return (
     <section className="py-14 lg:py-20 bg-secondary/50">
@@ -36,7 +60,7 @@ export function OnOfferProducts() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
-          {offerProducts.slice(0, 4).map((product) => (
+          {displayed.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>

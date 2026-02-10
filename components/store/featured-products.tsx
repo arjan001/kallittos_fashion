@@ -8,9 +8,49 @@ import useSWR from "swr"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
+function getMixedProducts(products: Product[], count: number): Product[] {
+  // Group products by category
+  const byCategory: Record<string, Product[]> = {}
+  for (const p of products) {
+    const cat = p.categorySlug || "other"
+    if (!byCategory[cat]) byCategory[cat] = []
+    byCategory[cat].push(p)
+  }
+
+  const categories = Object.keys(byCategory)
+  if (categories.length === 0) return []
+
+  // Round-robin pick from each category to get a nice mix
+  const result: Product[] = []
+  const indices: Record<string, number> = {}
+  for (const cat of categories) indices[cat] = 0
+
+  while (result.length < count) {
+    let added = false
+    for (const cat of categories) {
+      if (result.length >= count) break
+      if (indices[cat] < byCategory[cat].length) {
+        result.push(byCategory[cat][indices[cat]])
+        indices[cat]++
+        added = true
+      }
+    }
+    if (!added) break
+  }
+  return result
+}
+
 export function FeaturedProducts() {
   const { data: products = [] } = useSWR<Product[]>("/api/products", fetcher)
-  const featured = products.filter((p) => p.isOnOffer || p.isNew).slice(0, 8)
+
+  // Prioritize featured/offer/new items but mix from all categories
+  const prioritized = [...products].sort((a, b) => {
+    const aScore = (a.isOnOffer ? 2 : 0) + (a.isNew ? 1 : 0)
+    const bScore = (b.isOnOffer ? 2 : 0) + (b.isNew ? 1 : 0)
+    return bScore - aScore
+  })
+
+  const featured = getMixedProducts(prioritized, 8)
 
   if (featured.length === 0) return null
 

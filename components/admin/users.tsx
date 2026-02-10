@@ -1,7 +1,10 @@
 "use client"
 
+import React from "react"
+
 import { useState } from "react"
-import { Shield, ShieldCheck, Eye, Pencil, UserX, MoreHorizontal, UserCircle } from "lucide-react"
+import { Shield, ShieldCheck, Eye, Pencil, UserX, MoreHorizontal, UserCircle, UserPlus, Loader2, AlertCircle, Mail } from "lucide-react"
+import { AdminShell } from "./admin-shell"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -47,6 +50,13 @@ export function UsersManagement() {
   const [editForm, setEditForm] = useState({ display_name: "", role: "", is_active: true })
   const [saving, setSaving] = useState(false)
 
+  // Invite user state
+  const [showInvite, setShowInvite] = useState(false)
+  const [inviteForm, setInviteForm] = useState({ email: "", displayName: "", password: "", role: "admin" })
+  const [inviting, setInviting] = useState(false)
+  const [inviteError, setInviteError] = useState("")
+  const [inviteSuccess, setInviteSuccess] = useState(false)
+
   const openEdit = (u: AdminUser) => {
     setEditUser(u)
     setEditForm({ display_name: u.display_name, role: u.role, is_active: u.is_active })
@@ -80,166 +90,229 @@ export function UsersManagement() {
     mutate()
   }
 
+  const handleInvite = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setInviteError("")
+    if (inviteForm.password.length < 6) {
+      setInviteError("Password must be at least 6 characters")
+      return
+    }
+    setInviting(true)
+    try {
+      const res = await fetch("/api/admin/users/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(inviteForm),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setInviteError(data.error || "Failed to create user")
+      } else {
+        setInviteSuccess(true)
+        mutate()
+        setTimeout(() => {
+          setShowInvite(false)
+          setInviteSuccess(false)
+          setInviteForm({ email: "", displayName: "", password: "", role: "admin" })
+        }, 2000)
+      }
+    } catch {
+      setInviteError("Network error")
+    } finally {
+      setInviting(false)
+    }
+  }
+
   const activeUsers = users.filter((u) => u.is_active)
   const inactiveUsers = users.filter((u) => !u.is_active)
 
   return (
-    <div className="space-y-8">
-      {/* Role Legend */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {ROLES.map((r) => (
-          <div key={r.value} className="flex items-start gap-3 p-4 border border-border rounded-sm bg-secondary/30">
-            <r.icon className="h-5 w-5 mt-0.5 text-muted-foreground flex-shrink-0" />
-            <div>
-              <p className="text-sm font-medium">{r.label}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{r.description}</p>
+    <AdminShell title="Users & Roles">
+      <div className="space-y-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-serif font-bold">Users & Roles</h1>
+            <p className="text-sm text-muted-foreground mt-1">{users.length} team members</p>
+          </div>
+          <Button onClick={() => { setShowInvite(true); setInviteError(""); setInviteSuccess(false) }} className="bg-foreground text-background hover:bg-foreground/90">
+            <UserPlus className="h-4 w-4 mr-2" />
+            Add Team Member
+          </Button>
+        </div>
+
+        {/* Role Legend */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {ROLES.map((r) => (
+            <div key={r.value} className="flex items-start gap-3 p-4 border border-border rounded-sm bg-secondary/30">
+              <r.icon className="h-5 w-5 mt-0.5 text-muted-foreground flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium">{r.label}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{r.description}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Active Users */}
+        <div>
+          <h3 className="text-sm font-semibold mb-3">Active Users ({activeUsers.length})</h3>
+          <div className="border border-border rounded-sm overflow-hidden">
+            <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-2.5 bg-secondary text-xs font-medium text-muted-foreground">
+              <div className="col-span-4">User</div>
+              <div className="col-span-2">Role</div>
+              <div className="col-span-2">Status</div>
+              <div className="col-span-2">Last Login</div>
+              <div className="col-span-2 text-right">Actions</div>
+            </div>
+            {activeUsers.length === 0 ? (
+              <div className="p-8 text-center text-sm text-muted-foreground">No active users found</div>
+            ) : (
+              activeUsers.map((u) => (
+                <div key={u.id} className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 items-center px-4 py-3 border-t border-border">
+                  <div className="col-span-4 flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+                      <UserCircle className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{u.display_name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                    </div>
+                  </div>
+                  <div className="col-span-2">{getRoleBadge(u.role)}</div>
+                  <div className="col-span-2">
+                    <Badge variant="outline" className="text-[10px] bg-green-500/10 text-green-700 border-green-200">Active</Badge>
+                  </div>
+                  <div className="col-span-2 text-xs text-muted-foreground">
+                    {u.last_login ? new Date(u.last_login).toLocaleDateString() : "Never"}
+                  </div>
+                  <div className="col-span-2 flex justify-end">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openEdit(u)}>
+                          <Pencil className="h-3.5 w-3.5 mr-2" />Edit User
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleToggleActive(u)}>
+                          <UserX className="h-3.5 w-3.5 mr-2" />Deactivate
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDelete(u.id)} className="text-destructive">
+                          <UserX className="h-3.5 w-3.5 mr-2" />Remove
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Inactive Users */}
+        {inactiveUsers.length > 0 && (
+          <div>
+            <h3 className="text-sm font-semibold mb-3">Inactive Users ({inactiveUsers.length})</h3>
+            <div className="border border-border rounded-sm overflow-hidden">
+              {inactiveUsers.map((u) => (
+                <div key={u.id} className="flex items-center justify-between px-4 py-3 border-t border-border first:border-t-0 opacity-60">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center"><UserCircle className="h-5 w-5 text-muted-foreground" /></div>
+                    <div><p className="text-sm font-medium">{u.display_name}</p><p className="text-xs text-muted-foreground">{u.email}</p></div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {getRoleBadge(u.role)}
+                    <Button variant="outline" size="sm" className="text-xs bg-transparent" onClick={() => handleToggleActive(u)}>Reactivate</Button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-        ))}
+        )}
       </div>
-
-      {/* Active Users */}
-      <div>
-        <h3 className="text-sm font-semibold mb-3">Active Users ({activeUsers.length})</h3>
-        <div className="border border-border rounded-sm overflow-hidden">
-          <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-2.5 bg-secondary text-xs font-medium text-muted-foreground">
-            <div className="col-span-4">User</div>
-            <div className="col-span-2">Role</div>
-            <div className="col-span-2">Status</div>
-            <div className="col-span-2">Last Login</div>
-            <div className="col-span-2 text-right">Actions</div>
-          </div>
-          {activeUsers.length === 0 ? (
-            <div className="p-8 text-center text-sm text-muted-foreground">No active users found</div>
-          ) : (
-            activeUsers.map((u) => (
-              <div key={u.id} className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 items-center px-4 py-3 border-t border-border">
-                <div className="col-span-4 flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
-                    <UserCircle className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{u.display_name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{u.email}</p>
-                  </div>
-                </div>
-                <div className="col-span-2">{getRoleBadge(u.role)}</div>
-                <div className="col-span-2">
-                  <Badge variant="outline" className="text-[10px] bg-green-500/10 text-green-700 border-green-200">Active</Badge>
-                </div>
-                <div className="col-span-2 text-xs text-muted-foreground">
-                  {u.last_login ? new Date(u.last_login).toLocaleDateString() : "Never"}
-                </div>
-                <div className="col-span-2 flex justify-end">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => openEdit(u)}>
-                        <Pencil className="h-3.5 w-3.5 mr-2" />
-                        Edit User
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleToggleActive(u)}>
-                        <UserX className="h-3.5 w-3.5 mr-2" />
-                        Deactivate
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleDelete(u.id)} className="text-destructive">
-                        <UserX className="h-3.5 w-3.5 mr-2" />
-                        Remove
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* Inactive Users */}
-      {inactiveUsers.length > 0 && (
-        <div>
-          <h3 className="text-sm font-semibold mb-3">Inactive Users ({inactiveUsers.length})</h3>
-          <div className="border border-border rounded-sm overflow-hidden">
-            {inactiveUsers.map((u) => (
-              <div key={u.id} className="flex items-center justify-between px-4 py-3 border-t border-border first:border-t-0 opacity-60">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center">
-                    <UserCircle className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">{u.display_name}</p>
-                    <p className="text-xs text-muted-foreground">{u.email}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  {getRoleBadge(u.role)}
-                  <Button variant="outline" size="sm" className="text-xs bg-transparent" onClick={() => handleToggleActive(u)}>
-                    Reactivate
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Edit Dialog */}
       <Dialog open={!!editUser} onOpenChange={(open) => { if (!open) setEditUser(null) }}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
-            <DialogDescription>Update user details and permissions</DialogDescription>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Edit User</DialogTitle><DialogDescription>Update user details and permissions</DialogDescription></DialogHeader>
           <div className="space-y-4 mt-2">
             <div>
               <Label className="text-sm font-medium mb-1.5 block">Display Name</Label>
-              <Input
-                value={editForm.display_name}
-                onChange={(e) => setEditForm({ ...editForm, display_name: e.target.value })}
-                className="h-10"
-              />
+              <Input value={editForm.display_name} onChange={(e) => setEditForm({ ...editForm, display_name: e.target.value })} className="h-10" />
             </div>
             <div>
               <Label className="text-sm font-medium mb-1.5 block">Role</Label>
               <Select value={editForm.role} onValueChange={(v) => setEditForm({ ...editForm, role: v })}>
-                <SelectTrigger className="h-10">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ROLES.map((r) => (
-                    <SelectItem key={r.value} value={r.value}>
-                      {r.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+                <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                <SelectContent>{ROLES.map((r) => (<SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>))}</SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground mt-1">
-                {ROLES.find((r) => r.value === editForm.role)?.description}
-              </p>
+              <p className="text-xs text-muted-foreground mt-1">{ROLES.find((r) => r.value === editForm.role)?.description}</p>
             </div>
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium">Active</p>
-                <p className="text-xs text-muted-foreground">Inactive users cannot log in</p>
-              </div>
-              <Switch
-                checked={editForm.is_active}
-                onCheckedChange={(v) => setEditForm({ ...editForm, is_active: v })}
-              />
+              <div><p className="text-sm font-medium">Active</p><p className="text-xs text-muted-foreground">Inactive users cannot log in</p></div>
+              <Switch checked={editForm.is_active} onCheckedChange={(v) => setEditForm({ ...editForm, is_active: v })} />
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" className="bg-transparent" onClick={() => setEditUser(null)}>Cancel</Button>
-              <Button onClick={handleSave} disabled={saving} className="bg-foreground text-background hover:bg-foreground/90">
-                {saving ? "Saving..." : "Save Changes"}
-              </Button>
+              <Button onClick={handleSave} disabled={saving} className="bg-foreground text-background hover:bg-foreground/90">{saving ? "Saving..." : "Save Changes"}</Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+
+      {/* Invite User Dialog */}
+      <Dialog open={showInvite} onOpenChange={(open) => { if (!open) setShowInvite(false) }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><UserPlus className="h-5 w-5" />Add Team Member</DialogTitle>
+            <DialogDescription>Create a new admin account. They will receive an email to confirm.</DialogDescription>
+          </DialogHeader>
+
+          {inviteSuccess ? (
+            <div className="text-center py-6">
+              <Mail className="h-10 w-10 mx-auto text-foreground mb-3" />
+              <p className="text-sm font-medium">Account created!</p>
+              <p className="text-xs text-muted-foreground mt-1">A confirmation email has been sent to {inviteForm.email}</p>
+            </div>
+          ) : (
+            <form onSubmit={handleInvite} className="space-y-4 mt-2">
+              {inviteError && (
+                <div className="flex items-center gap-2 bg-destructive/10 text-destructive text-sm p-3 rounded-sm">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0" />{inviteError}
+                </div>
+              )}
+              <div>
+                <Label className="text-sm font-medium mb-1.5 block">Name</Label>
+                <Input value={inviteForm.displayName} onChange={(e) => setInviteForm({ ...inviteForm, displayName: e.target.value })} placeholder="Team member name" className="h-10" required />
+              </div>
+              <div>
+                <Label className="text-sm font-medium mb-1.5 block">Email</Label>
+                <Input type="email" value={inviteForm.email} onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })} placeholder="team@kallitosfashion.com" className="h-10" required />
+              </div>
+              <div>
+                <Label className="text-sm font-medium mb-1.5 block">Temporary Password</Label>
+                <Input type="password" value={inviteForm.password} onChange={(e) => setInviteForm({ ...inviteForm, password: e.target.value })} placeholder="Min 6 characters" className="h-10" required />
+                <p className="text-xs text-muted-foreground mt-1">The user can change this after first login.</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium mb-1.5 block">Role</Label>
+                <Select value={inviteForm.role} onValueChange={(v) => setInviteForm({ ...inviteForm, role: v })}>
+                  <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                  <SelectContent>{ROLES.map((r) => (<SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>))}</SelectContent>
+                </Select>
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button type="button" variant="outline" className="bg-transparent" onClick={() => setShowInvite(false)}>Cancel</Button>
+                <Button type="submit" disabled={inviting} className="bg-foreground text-background hover:bg-foreground/90">
+                  {inviting ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Creating...</>) : "Create Account"}
+                </Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+    </AdminShell>
   )
 }

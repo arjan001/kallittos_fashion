@@ -1,30 +1,37 @@
 "use client"
 
 import React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Loader2, AlertCircle, Eye, EyeOff, CheckCircle } from "lucide-react"
+import { Loader2, AlertCircle, Eye, EyeOff, CheckCircle, Lock } from "lucide-react"
 
 export default function RegisterPage() {
-  const router = useRouter()
   const [form, setForm] = useState({
     displayName: "",
     email: "",
     password: "",
     confirmPassword: "",
-    role: "admin",
   })
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [checking, setChecking] = useState(true)
+  const [hasAdmin, setHasAdmin] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
+
+  useEffect(() => {
+    fetch("/api/auth/check-setup")
+      .then((r) => r.json())
+      .then((data) => {
+        setHasAdmin(data.hasAdmin)
+        setChecking(false)
+      })
+      .catch(() => setChecking(false))
+  }, [])
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -34,14 +41,12 @@ export default function RegisterPage() {
       setError("Passwords do not match")
       return
     }
-
     if (form.password.length < 6) {
       setError("Password must be at least 6 characters")
       return
     }
 
     setLoading(true)
-
     const supabase = createClient()
     const { error: authError } = await supabase.auth.signUp({
       email: form.email,
@@ -50,7 +55,7 @@ export default function RegisterPage() {
         emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/admin`,
         data: {
           display_name: form.displayName,
-          role: form.role,
+          role: "super_admin",
         },
       },
     })
@@ -60,9 +65,43 @@ export default function RegisterPage() {
       setLoading(false)
       return
     }
-
     setSuccess(true)
     setLoading(false)
+  }
+
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  // Registration locked -- admin already exists
+  if (hasAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <div className="w-full max-w-sm text-center">
+          <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mx-auto mb-5">
+            <Lock className="h-7 w-7 text-muted-foreground" />
+          </div>
+          <h1 className="text-2xl font-serif font-bold">Registration Closed</h1>
+          <p className="text-sm text-muted-foreground mt-3 leading-relaxed">
+            The admin account has already been set up. New team members can only be added by the Super Admin through the admin dashboard.
+          </p>
+          <div className="mt-6 flex flex-col gap-3">
+            <Link href="/auth/login">
+              <Button className="w-full bg-foreground text-background hover:bg-foreground/90 font-medium">
+                Sign In
+              </Button>
+            </Link>
+            <Link href="/" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+              Back to store
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (success) {
@@ -91,7 +130,8 @@ export default function RegisterPage() {
           <Link href="/" className="font-serif text-3xl font-bold tracking-tight">
             Kallitos Fashion
           </Link>
-          <p className="text-sm text-muted-foreground mt-2">Register an admin account</p>
+          <p className="text-sm text-muted-foreground mt-2">Create the Super Admin account</p>
+          <p className="text-xs text-muted-foreground mt-1">This is a one-time setup. You can add more team members later from the admin panel.</p>
         </div>
 
         <form onSubmit={handleRegister} className="space-y-4">
@@ -103,66 +143,20 @@ export default function RegisterPage() {
           )}
 
           <div>
-            <Label htmlFor="displayName" className="text-sm font-medium mb-1.5 block">Display Name</Label>
-            <Input
-              id="displayName"
-              value={form.displayName}
-              onChange={(e) => setForm({ ...form, displayName: e.target.value })}
-              placeholder="Your name"
-              className="h-11"
-              required
-              autoFocus
-            />
+            <Label htmlFor="displayName" className="text-sm font-medium mb-1.5 block">Your Name</Label>
+            <Input id="displayName" value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} placeholder="Jane Doe" className="h-11" required autoFocus />
           </div>
 
           <div>
             <Label htmlFor="email" className="text-sm font-medium mb-1.5 block">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              placeholder="admin@kallitosfashion.com"
-              className="h-11"
-              required
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="role" className="text-sm font-medium mb-1.5 block">Role</Label>
-            <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v })}>
-              <SelectTrigger className="h-11">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="super_admin">Super Admin</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="editor">Editor</SelectItem>
-                <SelectItem value="viewer">Viewer</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground mt-1">
-              Super Admin has full access. Editor can manage products. Viewer is read-only.
-            </p>
+            <Input id="email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="admin@kallitosfashion.com" className="h-11" required />
           </div>
 
           <div>
             <Label htmlFor="password" className="text-sm font-medium mb-1.5 block">Password</Label>
             <div className="relative">
-              <Input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-                placeholder="Min 6 characters"
-                className="h-11 pr-10"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
+              <Input id="password" type={showPassword ? "text" : "password"} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Min 6 characters" className="h-11 pr-10" required />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
@@ -170,46 +164,23 @@ export default function RegisterPage() {
 
           <div>
             <Label htmlFor="confirmPassword" className="text-sm font-medium mb-1.5 block">Confirm Password</Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              value={form.confirmPassword}
-              onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
-              placeholder="Re-enter password"
-              className="h-11"
-              required
-            />
+            <Input id="confirmPassword" type="password" value={form.confirmPassword} onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })} placeholder="Re-enter password" className="h-11" required />
           </div>
 
-          <Button
-            type="submit"
-            disabled={loading || !form.email || !form.password || !form.displayName}
-            className="w-full h-11 bg-foreground text-background hover:bg-foreground/90 font-medium"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Creating Account...
-              </>
-            ) : (
-              "Create Admin Account"
-            )}
+          <Button type="submit" disabled={loading || !form.email || !form.password || !form.displayName} className="w-full h-11 bg-foreground text-background hover:bg-foreground/90 font-medium">
+            {loading ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Creating Account...</>) : "Create Super Admin Account"}
           </Button>
         </form>
 
         <div className="mt-6 text-center">
           <p className="text-sm text-muted-foreground">
-            Already have an account?{" "}
-            <Link href="/auth/login" className="text-foreground font-medium underline underline-offset-4 hover:text-foreground/80">
-              Sign In
-            </Link>
+            Already registered?{" "}
+            <Link href="/auth/login" className="text-foreground font-medium underline underline-offset-4 hover:text-foreground/80">Sign In</Link>
           </p>
         </div>
 
         <div className="mt-8 text-center">
-          <Link href="/" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-            Back to store
-          </Link>
+          <Link href="/" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Back to store</Link>
         </div>
       </div>
     </div>

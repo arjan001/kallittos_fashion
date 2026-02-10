@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 import { Eye, Truck, CheckCircle, Clock, Package, XCircle, Search } from "lucide-react"
 import { AdminShell } from "./admin-shell"
 import { formatPrice } from "@/lib/format"
@@ -21,7 +22,7 @@ interface Order {
   customer: string
   phone: string
   email: string
-  items: { name: string; qty: number; price: number; variation?: string }[]
+  items: { name: string; qty: number; price: number; variation?: string; image?: string }[]
   subtotal: number
   delivery: number
   total: number
@@ -134,8 +135,18 @@ export function AdminOrders() {
                   return (
                     <tr key={order.id} className="hover:bg-secondary/50 transition-colors">
                       <td className="px-4 py-3">
-                        <span className="font-medium">{order.orderNo}</span>
-                        <span className="sm:hidden text-xs text-muted-foreground block">{order.customer}</span>
+                        <div className="flex items-center gap-2.5">
+                          {order.items[0]?.image && (
+                            <div className="relative w-9 h-11 flex-shrink-0 bg-secondary rounded-sm overflow-hidden hidden sm:block">
+                              <Image src={order.items[0].image || "/placeholder.svg"} alt="" fill className="object-cover" />
+                            </div>
+                          )}
+                          <div>
+                            <span className="font-medium">{order.orderNo}</span>
+                            <span className="sm:hidden text-xs text-muted-foreground block">{order.customer}</span>
+                            <span className="hidden sm:block text-xs text-muted-foreground">{order.items.length} item{order.items.length !== 1 ? "s" : ""}</span>
+                          </div>
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">{order.customer}</td>
                       <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{order.date}</td>
@@ -199,13 +210,21 @@ export function AdminOrders() {
                 </div>
                 <div className="divide-y divide-border">
                   {selectedOrder.items.map((item, i) => (
-                    <div key={i} className="flex items-center justify-between px-4 py-3">
-                      <div>
-                        <p className="text-sm font-medium">{item.name}</p>
-                        {item.variation && <p className="text-xs text-muted-foreground">{item.variation}</p>}
-                        <p className="text-xs text-muted-foreground">Qty: {item.qty}</p>
+                    <div key={i} className="flex items-center gap-3 px-4 py-3">
+                      <div className="relative w-12 h-14 flex-shrink-0 bg-secondary rounded-sm overflow-hidden">
+                        <Image
+                          src={item.image || "/placeholder.svg"}
+                          alt={item.name}
+                          fill
+                          className="object-cover"
+                        />
                       </div>
-                      <span className="text-sm font-medium">{formatPrice(item.price * item.qty)}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{item.name}</p>
+                        {item.variation && <p className="text-xs text-muted-foreground">{item.variation}</p>}
+                        <p className="text-xs text-muted-foreground">Qty: {item.qty} x {formatPrice(item.price)}</p>
+                      </div>
+                      <span className="text-sm font-medium flex-shrink-0">{formatPrice(item.price * item.qty)}</span>
                     </div>
                   ))}
                 </div>
