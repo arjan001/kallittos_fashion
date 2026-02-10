@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { ShopPage } from "@/components/store/shop-page"
 import type { Metadata } from "next"
 
@@ -12,5 +13,9 @@ export const metadata: Metadata = {
 }
 
 export default function Page() {
-  return <ShopPage />
+  return (
+    <Suspense>
+      <ShopPage />
+    </Suspense>
+  )
 }
