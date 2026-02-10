@@ -3,7 +3,7 @@ import type { Metadata } from "next"
 
 export const metadata: Metadata = {
   title: "Checkout",
-  description: "Complete your Kallitos Fashion order. Pay on delivery or order via WhatsApp.",
+  description: "Complete your Kallitos Fashion order. Pay via M-PESA, pay on delivery, or order via WhatsApp.",
   robots: { index: false, follow: false },
 }
 

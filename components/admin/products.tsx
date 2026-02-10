@@ -608,43 +608,73 @@ export function AdminProducts() {
 
             {/* Image Upload */}
             <div>
-              <Label className="text-sm font-medium mb-1.5 block">Product Images</Label>
-              <div className="flex flex-wrap gap-2 mb-3">
-                {form.images.map((img, i) => (
-                  <div key={i} className="relative w-16 h-20 bg-secondary rounded-sm overflow-hidden group">
-                    <Image src={img || "/placeholder.svg"} alt={`Image ${i + 1}`} fill className="object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => removeImage(i)}
-                      className="absolute top-0.5 right-0.5 bg-foreground text-background rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
+              <Label className="text-sm font-medium mb-1.5 block">Product Images ({form.images.length})</Label>
+
+              {/* Drag-and-drop zone */}
+              <div
+                onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add("border-foreground", "bg-secondary/50") }}
+                onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove("border-foreground", "bg-secondary/50") }}
+                onDrop={(e) => { e.preventDefault(); e.currentTarget.classList.remove("border-foreground", "bg-secondary/50"); handleImageUpload(e.dataTransfer.files) }}
+                onClick={() => !isUploading && fileInputRef.current?.click()}
+                className="border-2 border-dashed border-border rounded-sm p-4 mb-3 cursor-pointer hover:border-foreground/40 transition-colors text-center"
+              >
+                {isUploading ? (
+                  <div className="flex items-center justify-center gap-2 py-2">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Uploading...</span>
                   </div>
-                ))}
-                {/* Upload button */}
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading}
-                  className="w-16 h-20 border-2 border-dashed border-border rounded-sm flex flex-col items-center justify-center hover:border-foreground transition-colors"
-                >
-                  {isUploading ? (
-                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                  ) : (
-                    <ImagePlus className="h-5 w-5 text-muted-foreground" />
-                  )}
-                  <span className="text-[10px] text-muted-foreground mt-1">Upload</span>
-                </button>
+                ) : (
+                  <div className="py-2">
+                    <ImagePlus className="h-8 w-8 mx-auto text-muted-foreground mb-1.5" />
+                    <p className="text-sm font-medium">Click or drag images here</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">Select multiple files at once. JPG, PNG, WebP supported.</p>
+                  </div>
+                )}
                 <input
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
                   multiple
                   className="hidden"
-                  onChange={(e) => handleImageUpload(e.target.files)}
+                  onChange={(e) => { handleImageUpload(e.target.files); if (e.target) e.target.value = "" }}
                 />
               </div>
+
+              {/* Image grid with reorder hint */}
+              {form.images.length > 0 && (
+                <div className="mb-3">
+                  <p className="text-[11px] text-muted-foreground mb-2">First image is the main product photo. Click X to remove.</p>
+                  <div className="flex flex-wrap gap-2">
+                    {form.images.map((img, i) => (
+                      <div key={i} className="relative w-16 h-20 bg-secondary rounded-sm overflow-hidden group">
+                        <Image src={img || "/placeholder.svg"} alt={`Image ${i + 1}`} fill className="object-cover" />
+                        {i === 0 && (
+                          <span className="absolute bottom-0 left-0 right-0 bg-foreground/80 text-background text-[8px] text-center py-0.5 font-bold tracking-wider">MAIN</span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeImage(i)}
+                          className="absolute top-0.5 right-0.5 bg-foreground text-background rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                        {/* Move left/right */}
+                        {form.images.length > 1 && (
+                          <div className="absolute bottom-0.5 left-0.5 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {i > 0 && (
+                              <button type="button" onClick={() => { const imgs = [...form.images]; [imgs[i-1], imgs[i]] = [imgs[i], imgs[i-1]]; setForm(prev => ({...prev, images: imgs})) }} className="bg-foreground/80 text-background rounded-sm w-4 h-4 flex items-center justify-center text-[9px]">{'<'}</button>
+                            )}
+                            {i < form.images.length - 1 && (
+                              <button type="button" onClick={() => { const imgs = [...form.images]; [imgs[i], imgs[i+1]] = [imgs[i+1], imgs[i]]; setForm(prev => ({...prev, images: imgs})) }} className="bg-foreground/80 text-background rounded-sm w-4 h-4 flex items-center justify-center text-[9px]">{'>'}</button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-2">
                 <Input
                   value={newImageUrl}

@@ -15,7 +15,7 @@ const playfair = Playfair_Display({
   variable: "--font-playfair",
 })
 
-const siteUrl = "https://kallitosfashion.com"
+const siteUrl = "https://kallittofashions.com"
 
 export const metadata: Metadata = {
   title: {
@@ -99,7 +99,7 @@ export default function RootLayout({
               "@type": "ClothingStore",
               name: "Kallitos Fashion",
               description: "Curated thrift and brand-new denim fashion in Nairobi, Kenya.",
-              url: "https://kallitosfashion.com",
+              url: "https://kallittofashions.com",
               telephone: "+254713809695",
               email: "info@kallitosfashion.com",
               address: {
