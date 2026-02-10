@@ -26,7 +26,7 @@ const navItems = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { label: "Products", href: "/admin/products", icon: Package },
   { label: "Categories", href: "/admin/categories", icon: Tag },
-  { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
+  { label: "Orders", href: "/admin/orders", icon: ShoppingCart, hasBadge: true },
   { label: "Offers & Banners", href: "/admin/banners", icon: ImageIcon },
   { label: "Delivery", href: "/admin/delivery-locations", icon: Truck },
   { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
@@ -46,6 +46,7 @@ export function AdminShell({ children, title }: { children: ReactNode; title: st
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
   const [loggingOut, setLoggingOut] = useState(false)
+  const [pendingOrders, setPendingOrders] = useState(0)
 
   useEffect(() => {
     const supabase = createClient()
@@ -60,6 +61,20 @@ export function AdminShell({ children, title }: { children: ReactNode; title: st
         else setCurrentUser({ display_name: user.email || "Admin", email: user.email || "", role: "admin" })
       }
     })
+
+    // Fetch pending orders count
+    const fetchPending = async () => {
+      const { count } = await supabase
+        .from("orders")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "pending")
+      setPendingOrders(count || 0)
+    }
+    fetchPending()
+
+    // Poll every 30 seconds for new orders
+    const interval = setInterval(fetchPending, 30000)
+    return () => clearInterval(interval)
   }, [])
 
   const handleLogout = async () => {
@@ -106,11 +121,12 @@ export function AdminShell({ children, title }: { children: ReactNode; title: st
           <nav className="flex-1 py-4">
             {navItems.map((item) => {
               const isActive = pathname === item.href
+              const showBadge = (item as typeof navItems[number] & { hasBadge?: boolean }).hasBadge && pendingOrders > 0
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-3 px-6 py-2.5 text-sm transition-colors ${
+                  className={`flex items-center gap-3 px-6 py-2.5 text-sm transition-colors relative ${
                     isActive
                       ? "bg-foreground text-background font-medium"
                       : "text-muted-foreground hover:text-foreground hover:bg-secondary"
@@ -118,6 +134,11 @@ export function AdminShell({ children, title }: { children: ReactNode; title: st
                 >
                   <item.icon className="h-4 w-4" />
                   {item.label}
+                  {showBadge && (
+                    <span className="ml-auto flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold bg-red-500 text-white rounded-full animate-pulse">
+                      {pendingOrders}
+                    </span>
+                  )}
                 </Link>
               )
             })}
@@ -190,6 +211,7 @@ export function AdminShell({ children, title }: { children: ReactNode; title: st
               <nav className="flex-1 py-4">
                 {navItems.map((item) => {
                   const isActive = pathname === item.href
+                  const showBadge = (item as typeof navItems[number] & { hasBadge?: boolean }).hasBadge && pendingOrders > 0
                   return (
                     <Link
                       key={item.href}
@@ -203,6 +225,11 @@ export function AdminShell({ children, title }: { children: ReactNode; title: st
                     >
                       <item.icon className="h-4 w-4" />
                       {item.label}
+                      {showBadge && (
+                        <span className="ml-auto flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold bg-red-500 text-white rounded-full animate-pulse">
+                          {pendingOrders}
+                        </span>
+                      )}
                     </Link>
                   )
                 })}

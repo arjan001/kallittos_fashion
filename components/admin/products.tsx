@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
+import { toast } from "sonner"
 import { Plus, Pencil, Trash2, X, Upload, Search, Download, FileUp, ImagePlus, Loader2 } from "lucide-react"
 import { AdminShell } from "./admin-shell"
 import { formatPrice } from "@/lib/format"
@@ -133,25 +134,32 @@ export function AdminProducts() {
     }
 
     try {
-      await fetch("/api/admin/products", {
+      const res = await fetch("/api/admin/products", {
         method: editingId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       })
       mutateProducts()
+      if (res.ok) toast.success(editingId ? "Product updated" : "Product created")
+      else toast.error("Failed to save product")
     } catch (err) {
       console.error("Save failed:", err)
+      toast.error("Failed to save product")
     }
 
     setIsModalOpen(false)
   }
 
   const handleDelete = async (id: string) => {
+    if (!confirm("Delete this product?")) return
     try {
-      await fetch(`/api/admin/products?id=${id}`, { method: "DELETE" })
+      const res = await fetch(`/api/admin/products?id=${id}`, { method: "DELETE" })
       mutateProducts()
+      if (res.ok) toast.success("Product deleted")
+      else toast.error("Failed to delete product")
     } catch (err) {
       console.error("Delete failed:", err)
+      toast.error("Failed to delete product")
     }
   }
 

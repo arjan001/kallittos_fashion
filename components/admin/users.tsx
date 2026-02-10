@@ -2,6 +2,7 @@
 
 import React from "react"
 import { useState } from "react"
+import { toast } from "sonner"
 import { Shield, ShieldCheck, Eye, Pencil, UserX, MoreHorizontal, UserCircle, UserPlus, Loader2, AlertCircle, Mail, Trash2 } from "lucide-react"
 import { usePagination } from "@/hooks/use-pagination"
 import { PaginationControls } from "@/components/pagination-controls"
@@ -61,7 +62,7 @@ export function UsersManagement() {
   const handleSave = async () => {
     if (!editUser) return
     setSaving(true)
-    await fetch("/api/admin/users", {
+    const res = await fetch("/api/admin/users", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: editUser.id, ...editForm }),
@@ -69,21 +70,27 @@ export function UsersManagement() {
     setSaving(false)
     setEditUser(null)
     mutate()
+    if (res.ok) toast.success("User updated successfully")
+    else toast.error("Failed to update user")
   }
 
   const handleToggleActive = async (u: AdminUser) => {
-    await fetch("/api/admin/users", {
+    const res = await fetch("/api/admin/users", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: u.id, is_active: !u.is_active }),
     })
     mutate()
+    if (res.ok) toast.success(u.is_active ? `${u.display_name} deactivated` : `${u.display_name} reactivated`)
+    else toast.error("Failed to update user status")
   }
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to permanently remove this user?")) return
-    await fetch(`/api/admin/users?id=${id}`, { method: "DELETE" })
+    const res = await fetch(`/api/admin/users?id=${id}`, { method: "DELETE" })
     mutate()
+    if (res.ok) toast.success("User removed successfully")
+    else toast.error("Failed to remove user")
   }
 
   const handleInvite = async (e: React.FormEvent) => {
@@ -103,9 +110,11 @@ export function UsersManagement() {
       const data = await res.json()
       if (!res.ok) {
         setInviteError(data.error || "Failed to create user")
+        toast.error(data.error || "Failed to create user")
       } else {
         setInviteSuccess(true)
         mutate()
+        toast.success(`${inviteForm.displayName} added successfully`)
         setTimeout(() => {
           setShowInvite(false)
           setInviteSuccess(false)
