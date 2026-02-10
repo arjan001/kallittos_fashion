@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
+import { toast } from "sonner"
 import { Eye, Truck, CheckCircle, Clock, Package, XCircle, Search } from "lucide-react"
 import { usePagination } from "@/hooks/use-pagination"
 import { PaginationControls } from "@/components/pagination-controls"
@@ -60,12 +61,14 @@ export function AdminOrders() {
 
   useEffect(() => { resetPage() }, [search, statusFilter])
 
-  const updateStatus = async (orderId: string, newStatus: OrderStatus) => {
-    await fetch("/api/admin/orders", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: orderId, status: newStatus }),
-    })
+ const updateStatus = async (orderId: string, newStatus: OrderStatus) => {
+  const res = await fetch("/api/admin/orders", {
+  method: "PATCH",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ id: orderId, status: newStatus }),
+  })
+  if (res.ok) toast.success(`Order ${statusConfig[newStatus].label.toLowerCase()}`)
+  else toast.error("Failed to update order status")
     mutate()
     if (selectedOrder?.id === orderId) {
       setSelectedOrder((prev) => prev ? { ...prev, status: newStatus } : null)

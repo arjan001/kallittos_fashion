@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Image from "next/image"
+import { toast } from "sonner"
 import { Plus, Pencil, Trash2, Search } from "lucide-react"
 import { AdminShell } from "./admin-shell"
 import { Button } from "@/components/ui/button"
@@ -49,18 +50,23 @@ export function AdminCategories() {
 
   const handleSave = async () => {
     const body = { id: editId, name: form.name, slug: form.slug, image: form.image }
-    await fetch("/api/admin/categories", {
+    const res = await fetch("/api/admin/categories", {
       method: editId ? "PUT" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     })
     mutate()
     setIsOpen(false)
+    if (res.ok) toast.success(editId ? "Category updated" : "Category created")
+    else toast.error("Failed to save category")
   }
 
   const handleDelete = async (id: string) => {
-    await fetch(`/api/admin/categories?id=${id}`, { method: "DELETE" })
+    if (!confirm("Delete this category?")) return
+    const res = await fetch(`/api/admin/categories?id=${id}`, { method: "DELETE" })
     mutate()
+    if (res.ok) toast.success("Category deleted")
+    else toast.error("Failed to delete category")
   }
 
   return (
