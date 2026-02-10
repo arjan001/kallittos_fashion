@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 import { SlidersHorizontal, Grid3X3, LayoutList, X, Search } from "lucide-react"
 import { TopBar } from "./top-bar"
@@ -76,17 +76,28 @@ export function ShopPage() {
   const [sortBy, setSortBy] = useState("newest")
   const [showNew, setShowNew] = useState(filterParam === "new")
   const [showOffers, setShowOffers] = useState(filterParam === "offers")
-  const maxPrice = products.length > 0 ? Math.max(...products.map((p) => p.price)) : 10000
-  const [priceRange, setPriceRange] = useState([0, 99999])
+  const minProductPrice = products.length > 0 ? Math.min(...products.map((p) => p.price)) : 0
+  const maxProductPrice = products.length > 0 ? Math.max(...products.map((p) => p.price)) : 10000
+  const maxPrice = Math.ceil(maxProductPrice / 100) * 100
+  const [priceRange, setPriceRange] = useState([0, maxPrice])
+  const [priceInitialized, setPriceInitialized] = useState(false)
   const [gridView, setGridView] = useState<"grid" | "list">("grid")
   const [localSearch, setLocalSearch] = useState(queryParam)
+
+  // Set price range dynamically once products load
+  useEffect(() => {
+    if (products.length > 0 && !priceInitialized) {
+      setPriceRange([0, maxPrice])
+      setPriceInitialized(true)
+    }
+  }, [products.length, maxPrice, priceInitialized])
 
   const filtered = useMemo(() => {
     let result = [...products]
 
     if (queryParam) {
       const q = queryParam.toLowerCase()
-      result = result.filter((p) => p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q) || p.description.toLowerCase().includes(q))
+      result = result.filter((p) => p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q) || p.description.toLowerCase().includes(q) || p.tags.some((t) => t.toLowerCase().includes(q)))
     }
 
     if (localSearch && !queryParam) {
@@ -97,7 +108,7 @@ export function ShopPage() {
     if (selectedCategory) result = result.filter((p) => p.categorySlug === selectedCategory)
     if (showNew) result = result.filter((p) => p.isNew)
     if (showOffers) result = result.filter((p) => p.isOnOffer)
-    if (priceRange[1] < 99999) result = result.filter((p) => p.price >= priceRange[0] && p.price <= priceRange[1])
+    if (priceRange[0] > 0 || priceRange[1] < maxPrice) result = result.filter((p) => p.price >= priceRange[0] && p.price <= priceRange[1])
 
     switch (sortBy) {
       case "price-low": result.sort((a, b) => a.price - b.price); break
@@ -113,7 +124,7 @@ export function ShopPage() {
     selectedCategory && categories.find((c) => c.slug === selectedCategory)?.name,
     showNew && "New Arrivals",
     showOffers && "On Offer",
-    (priceRange[1] < 99999 && priceRange[0] > 0) && `${formatPrice(priceRange[0])} - ${formatPrice(priceRange[1])}`,
+    (priceRange[0] > 0 || priceRange[1] < maxPrice) && `${formatPrice(priceRange[0])} - ${formatPrice(priceRange[1])}`,
   ].filter(Boolean)
 
   return (
@@ -144,11 +155,11 @@ export function ShopPage() {
                     if (filter === categories.find((c) => c.slug === selectedCategory)?.name) setSelectedCategory("")
                     if (filter === "New Arrivals") setShowNew(false)
                     if (filter === "On Offer") setShowOffers(false)
-                    if (String(filter).includes("KSh")) setPriceRange([0, 99999])
+                    if (String(filter).includes("KSh")) setPriceRange([0, maxPrice])
                   }}><X className="h-3 w-3" /></button>
                 </span>
               ))}
-              <button type="button" onClick={() => { setSelectedCategory(""); setShowNew(false); setShowOffers(false); setPriceRange([0, 99999]); setLocalSearch(""); if (queryParam) window.location.href = "/shop" }} className="text-xs text-muted-foreground hover:text-foreground underline">Clear All</button>
+              <button type="button" onClick={() => { setSelectedCategory(""); setShowNew(false); setShowOffers(false); setPriceRange([0, maxPrice]); setLocalSearch(""); if (queryParam) window.location.href = "/shop" }} className="text-xs text-muted-foreground hover:text-foreground underline">Clear All</button>
             </div>
           )}
 
@@ -180,7 +191,7 @@ export function ShopPage() {
               {filtered.length === 0 ? (
                 <div className="text-center py-20">
                   <p className="text-muted-foreground">No products found matching your filters.</p>
-                  <button type="button" onClick={() => { setSelectedCategory(""); setShowNew(false); setShowOffers(false); setPriceRange([0, 99999]); setLocalSearch("") }} className="mt-3 text-sm underline hover:text-muted-foreground">Clear all filters</button>
+                  <button type="button" onClick={() => { setSelectedCategory(""); setShowNew(false); setShowOffers(false); setPriceRange([0, maxPrice]); setLocalSearch("") }} className="mt-3 text-sm underline hover:text-muted-foreground">Clear all filters</button>
                 </div>
               ) : (
                 <div className={gridView === "grid" ? "grid grid-cols-2 md:grid-cols-3 gap-4 lg:gap-6" : "grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6"}>

@@ -59,12 +59,30 @@ export function ProductDetailPage({ slug }: { slug: string }) {
     )
   }
 
-  const similar = allProducts.filter(
-    (p) => p.id !== product.id && p.categorySlug === product.categorySlug
-  ).slice(0, 4)
-  const youMayLike = allProducts.filter(
-    (p) => p.id !== product.id && p.categorySlug !== product.categorySlug
-  ).slice(0, 4)
+  // Similar: same category, sorted by name-keyword overlap
+  const nameWords = product.name.toLowerCase().split(/\s+/).filter((w) => w.length > 2)
+  const similar = allProducts
+    .filter((p) => p.id !== product.id && p.categorySlug === product.categorySlug)
+    .map((p) => {
+      const pWords = p.name.toLowerCase().split(/\s+/)
+      const overlap = nameWords.filter((w) => pWords.some((pw) => pw.includes(w))).length
+      return { ...p, _score: overlap }
+    })
+    .sort((a, b) => b._score - a._score)
+    .slice(0, 4)
+
+  // You May Also Like: cross-category but matching tags or name keywords
+  const productTagSet = new Set(product.tags.map((t) => t.toLowerCase()))
+  const youMayLike = allProducts
+    .filter((p) => p.id !== product.id && !similar.some((s) => s.id === p.id))
+    .map((p) => {
+      const pWords = p.name.toLowerCase().split(/\s+/)
+      const nameOverlap = nameWords.filter((w) => pWords.some((pw) => pw.includes(w))).length
+      const tagOverlap = p.tags.filter((t) => productTagSet.has(t.toLowerCase())).length
+      return { ...p, _score: tagOverlap * 2 + nameOverlap }
+    })
+    .sort((a, b) => b._score - a._score)
+    .slice(0, 4)
 
   const handleAddToCart = () => {
     addItem(product, quantity, Object.keys(selectedVariations).length > 0 ? selectedVariations : undefined)

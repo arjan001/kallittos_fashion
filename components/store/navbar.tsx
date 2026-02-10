@@ -39,12 +39,13 @@ export function Navbar() {
           (p) =>
             p.name.toLowerCase().includes(q) ||
             p.category.toLowerCase().includes(q) ||
-            p.description.toLowerCase().includes(q)
+            p.description.toLowerCase().includes(q) ||
+            p.tags.some((t) => t.toLowerCase().includes(q))
         )
-        .slice(0, 5)
+        .slice(0, 6)
       setSuggestions(results)
       setShowSuggestions(true)
-    } else {
+    } else if (searchQuery.trim().length < 2) {
       setSuggestions([])
       setShowSuggestions(false)
     }
@@ -133,22 +134,34 @@ export function Navbar() {
               <input type="text" placeholder="Search jeans, jackets, dungarees..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="flex-1 h-10 px-4 bg-secondary text-sm text-foreground placeholder:text-muted-foreground outline-none" />
               <button type="submit" className="h-10 px-4 bg-foreground text-background rounded-r-sm"><Search className="h-4 w-4" /></button>
 
-              {showSuggestions && suggestions.length > 0 && (
+              {showSuggestions && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border shadow-lg rounded-sm z-50 overflow-hidden">
-                  {suggestions.map((p) => (
-                    <button key={p.id} type="button" onClick={() => handleSuggestionClick(p.slug)} className="w-full text-left px-4 py-3 hover:bg-secondary transition-colors flex items-center gap-3">
-                      <div className="w-10 h-12 bg-secondary rounded-sm overflow-hidden flex-shrink-0">
-                        <img src={p.images[0] || "/placeholder.svg"} alt="" className="w-full h-full object-cover" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{p.name}</p>
-                        <p className="text-xs text-muted-foreground">{formatPrice(p.price)}</p>
-                      </div>
-                    </button>
-                  ))}
-                  <button type="button" onClick={() => { router.push(`/shop?q=${encodeURIComponent(searchQuery.trim())}`); setShowSuggestions(false); setSearchQuery("") }} className="w-full text-left px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors border-t border-border">
-                    {"View all results for \""}{searchQuery}{"\""}
-                  </button>
+                  {suggestions.length > 0 ? (
+                    <>
+                      {suggestions.map((p) => (
+                        <button key={p.id} type="button" onClick={() => handleSuggestionClick(p.slug)} className="w-full text-left px-4 py-3 hover:bg-secondary transition-colors flex items-center gap-3">
+                          <div className="w-10 h-12 bg-secondary rounded-sm overflow-hidden flex-shrink-0">
+                            <img src={p.images[0] || "/placeholder.svg"} alt="" className="w-full h-full object-cover" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{p.name}</p>
+                            <p className="text-xs text-muted-foreground">{p.category}</p>
+                            <p className="text-xs font-medium">{formatPrice(p.price)}</p>
+                          </div>
+                        </button>
+                      ))}
+                      <button type="button" onClick={() => { router.push(`/shop?q=${encodeURIComponent(searchQuery.trim())}`); setShowSuggestions(false); setSearchQuery("") }} className="w-full text-left px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors border-t border-border">
+                        {"View all results for \""}{searchQuery}{"\""}
+                      </button>
+                    </>
+                  ) : (
+                    <div className="px-4 py-6 text-center">
+                      <p className="text-sm text-muted-foreground">{"No products found for \""}{searchQuery}{"\"."}</p>
+                      <button type="button" onClick={() => { router.push(`/shop?q=${encodeURIComponent(searchQuery.trim())}`); setShowSuggestions(false); setSearchQuery("") }} className="text-xs underline mt-2 text-muted-foreground hover:text-foreground">
+                        Search the shop
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </form>
@@ -174,14 +187,25 @@ export function Navbar() {
                 <input type="text" placeholder="Search jeans, jackets..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="flex-1 h-10 px-4 bg-background text-sm outline-none" autoFocus />
                 <button type="submit" className="px-3"><Search className="h-4 w-4" /></button>
               </div>
-              {showSuggestions && suggestions.length > 0 && (
+              {showSuggestions && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border shadow-lg rounded-sm z-50 overflow-hidden">
-                  {suggestions.map((p) => (
-                    <button key={p.id} type="button" onClick={() => handleSuggestionClick(p.slug)} className="w-full text-left px-4 py-3 hover:bg-secondary transition-colors flex items-center gap-3">
-                      <div className="w-10 h-12 bg-secondary rounded-sm overflow-hidden flex-shrink-0"><img src={p.images[0] || "/placeholder.svg"} alt="" className="w-full h-full object-cover" /></div>
-                      <div className="flex-1 min-w-0"><p className="text-sm font-medium truncate">{p.name}</p><p className="text-xs text-muted-foreground">{formatPrice(p.price)}</p></div>
-                    </button>
-                  ))}
+                  {suggestions.length > 0 ? (
+                    <>
+                      {suggestions.map((p) => (
+                        <button key={p.id} type="button" onClick={() => handleSuggestionClick(p.slug)} className="w-full text-left px-4 py-3 hover:bg-secondary transition-colors flex items-center gap-3">
+                          <div className="w-10 h-12 bg-secondary rounded-sm overflow-hidden flex-shrink-0"><img src={p.images[0] || "/placeholder.svg"} alt="" className="w-full h-full object-cover" /></div>
+                          <div className="flex-1 min-w-0"><p className="text-sm font-medium truncate">{p.name}</p><p className="text-xs text-muted-foreground">{p.category}</p><p className="text-xs font-medium">{formatPrice(p.price)}</p></div>
+                        </button>
+                      ))}
+                      <button type="button" onClick={() => { handleSearch({ preventDefault: () => {} } as React.FormEvent) }} className="w-full text-left px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors border-t border-border">
+                        {"View all results"}
+                      </button>
+                    </>
+                  ) : (
+                    <div className="px-4 py-4 text-center">
+                      <p className="text-sm text-muted-foreground">{"No products found"}</p>
+                    </div>
+                  )}
                 </div>
               )}
             </form>

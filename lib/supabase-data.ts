@@ -5,7 +5,7 @@ export function formatPrice(price: number): string {
   return `KSh ${price.toLocaleString()}`
 }
 
-function mapProduct(row: Record<string, unknown>, images: Record<string, unknown>[], variations: Record<string, unknown>[]): Product {
+function mapProduct(row: Record<string, unknown>, images: Record<string, unknown>[], variations: Record<string, unknown>[], productTags: Record<string, string[]> = {}): Product {
   const productImages = images
     .filter((img) => img.product_id === row.id)
     .sort((a, b) => (a.sort_order as number) - (b.sort_order as number))
@@ -36,7 +36,7 @@ function mapProduct(row: Record<string, unknown>, images: Record<string, unknown
     categorySlug: (row as Record<string, unknown> & { categories?: { name: string; slug: string } }).categories?.slug || "",
     description: (row.description as string) || "",
     variations: variationsList.length > 0 ? variationsList : undefined,
-    tags: [],
+    tags: productTags[row.id as string] || [],
     isNew: row.is_new as boolean,
     isOnOffer: row.is_on_offer as boolean,
     offerPercentage: row.offer_percentage ? Number(row.offer_percentage) : undefined,
@@ -48,16 +48,27 @@ function mapProduct(row: Record<string, unknown>, images: Record<string, unknown
 export async function getProducts(): Promise<Product[]> {
   const supabase = await createClient()
 
-  const [productsRes, imagesRes, variationsRes] = await Promise.all([
+  const [productsRes, imagesRes, variationsRes, productTagsRes] = await Promise.all([
     supabase.from("products").select("*, categories(name, slug)").order("sort_order", { ascending: true }),
     supabase.from("product_images").select("*").order("sort_order", { ascending: true }),
     supabase.from("product_variations").select("*"),
+    supabase.from("product_tags").select("product_id, tags(name)"),
   ])
 
   if (!productsRes.data) return []
 
+  const tagMap: Record<string, string[]> = {}
+  for (const pt of productTagsRes.data || []) {
+    const pid = pt.product_id as string
+    const tagName = (pt as Record<string, unknown> & { tags?: { name: string } }).tags?.name
+    if (tagName) {
+      if (!tagMap[pid]) tagMap[pid] = []
+      tagMap[pid].push(tagName)
+    }
+  }
+
   return productsRes.data.map((row) =>
-    mapProduct(row, imagesRes.data || [], variationsRes.data || [])
+    mapProduct(row, imagesRes.data || [], variationsRes.data || [], tagMap)
   )
 }
 
@@ -72,12 +83,23 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 
   if (!row) return null
 
-  const [imagesRes, variationsRes] = await Promise.all([
+  const [imagesRes, variationsRes, ptRes] = await Promise.all([
     supabase.from("product_images").select("*").eq("product_id", row.id).order("sort_order", { ascending: true }),
     supabase.from("product_variations").select("*").eq("product_id", row.id),
+    supabase.from("product_tags").select("product_id, tags(name)").eq("product_id", row.id),
   ])
 
-  return mapProduct(row, imagesRes.data || [], variationsRes.data || [])
+  const tagMap: Record<string, string[]> = {}
+  for (const pt of ptRes.data || []) {
+    const pid = pt.product_id as string
+    const tagName = (pt as Record<string, unknown> & { tags?: { name: string } }).tags?.name
+    if (tagName) {
+      if (!tagMap[pid]) tagMap[pid] = []
+      tagMap[pid].push(tagName)
+    }
+  }
+
+  return mapProduct(row, imagesRes.data || [], variationsRes.data || [], tagMap)
 }
 
 export async function getProductsByCategory(categorySlug: string): Promise<Product[]> {
