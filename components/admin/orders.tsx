@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Eye, Truck, CheckCircle, Clock, Package, XCircle, Search } from "lucide-react"
 import { AdminShell } from "./admin-shell"
-import { formatPrice } from "@/lib/data"
+import { formatPrice } from "@/lib/format"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"

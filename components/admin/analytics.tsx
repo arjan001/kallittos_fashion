@@ -1,7 +1,7 @@
 "use client"
 
 import { AdminShell } from "./admin-shell"
-import { formatPrice } from "@/lib/data"
+import { formatPrice } from "@/lib/format"
 import { TrendingUp, TrendingDown, Users, ShoppingBag, Eye, DollarSign, ArrowUpRight, ArrowDownRight } from "lucide-react"
 
 const stats = [

@@ -4,7 +4,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { X, Minus, Plus, ShoppingBag } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
-import { formatPrice } from "@/lib/data"
+import { formatPrice } from "@/lib/format"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 

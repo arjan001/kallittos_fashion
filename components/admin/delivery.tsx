@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Plus, Pencil, Trash2, MapPin } from "lucide-react"
 import { AdminShell } from "./admin-shell"
-import { formatPrice } from "@/lib/data"
+import { formatPrice } from "@/lib/format"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"

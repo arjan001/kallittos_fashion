@@ -2,7 +2,7 @@
 
 import { Package, Tag, Percent, TrendingUp, ShoppingBag, Eye, ShoppingCart } from "lucide-react"
 import { AdminShell } from "./admin-shell"
-import { formatPrice } from "@/lib/data"
+import { formatPrice } from "@/lib/format"
 import Link from "next/link"
 import useSWR from "swr"
 

@@ -29,8 +29,11 @@ export const metadata: Metadata = {
     "denim jackets", "dungarees", "thrift fashion Kenya", "online jeans store",
     "WhatsApp order Kenya", "secondhand denim", "brand new jeans",
   ],
-  authors: [{ name: "Kallitos Fashion" }],
-  creator: "Kallitos Fashion",
+  authors: [
+    { name: "Kallitos Fashion" },
+    { name: "OnePlusAfrica Tech Solutions", url: "https://oneplusafrica.com/" },
+  ],
+  creator: "OnePlusAfrica Tech Solutions",
   publisher: "Kallitos Fashion",
   metadataBase: new URL(siteUrl),
   alternates: { canonical: siteUrl },
@@ -85,6 +88,50 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <meta name="format-detection" content="telephone=no" />
+        <link rel="author" href="https://oneplusafrica.com/" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "ClothingStore",
+              name: "Kallitos Fashion",
+              description: "Curated thrift and brand-new denim fashion in Nairobi, Kenya.",
+              url: "https://kallitosfashion.com",
+              telephone: "+254780406059",
+              email: "info@kallitosfashion.com",
+              address: {
+                "@type": "PostalAddress",
+                streetAddress: "Dynamic Mall, 2nd Floor, Room ML 96",
+                addressLocality: "Nairobi CBD",
+                addressRegion: "Nairobi",
+                addressCountry: "KE",
+              },
+              geo: {
+                "@type": "GeoCoordinates",
+                latitude: -1.2864,
+                longitude: 36.8172,
+              },
+              openingHoursSpecification: {
+                "@type": "OpeningHoursSpecification",
+                dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+                opens: "09:00",
+                closes: "18:00",
+              },
+              sameAs: [
+                "https://www.instagram.com/kallittofashions/",
+                "https://www.tiktok.com/@kallittos",
+              ],
+              priceRange: "KES 1,000 - KES 5,000",
+              image: "https://images.unsplash.com/photo-1542272604-787c3835535d?w=1200&h=630&fit=crop",
+              founder: {
+                "@type": "Organization",
+                name: "OnePlusAfrica Tech Solutions",
+                url: "https://oneplusafrica.com/",
+              },
+            }),
+          }}
+        />
       </head>
       <body className="font-sans antialiased">
         <CartProvider>{children}</CartProvider>

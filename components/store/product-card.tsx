@@ -4,7 +4,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Heart, ShoppingBag, Eye } from "lucide-react"
 import type { Product } from "@/lib/types"
-import { formatPrice } from "@/lib/data"
+import { formatPrice } from "@/lib/format"
 import { useCart } from "@/lib/cart-context"
 
 export function ProductCard({ product }: { product: Product }) {
