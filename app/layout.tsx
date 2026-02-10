@@ -98,7 +98,7 @@ export default function RootLayout({
               name: "Kallitos Fashion",
               description: "Curated thrift and brand-new denim fashion in Nairobi, Kenya.",
               url: "https://kallitosfashion.com",
-              telephone: "+254780406059",
+              telephone: "+254713809695",
               email: "info@kallitosfashion.com",
               address: {
                 "@type": "PostalAddress",

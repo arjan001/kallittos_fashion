@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, type ReactNode } from "react"
+import { useState, useEffect, type ReactNode } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
+import { createClient } from "@/lib/supabase/client"
 import {
   LayoutDashboard,
   Package,
@@ -17,6 +18,8 @@ import {
   ShoppingCart,
   BarChart3,
   Settings,
+  Users,
+  UserCircle,
 } from "lucide-react"
 
 const navItems = [
@@ -27,12 +30,53 @@ const navItems = [
   { label: "Offers & Banners", href: "/admin/banners", icon: ImageIcon },
   { label: "Delivery", href: "/admin/delivery-locations", icon: Truck },
   { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
+  { label: "Users & Roles", href: "/admin/users", icon: Users },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ]
 
+interface CurrentUser {
+  display_name: string
+  email: string
+  role: string
+}
+
 export function AdminShell({ children, title }: { children: ReactNode; title: string }) {
   const pathname = usePathname()
+  const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
+  const [loggingOut, setLoggingOut] = useState(false)
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (user) {
+        const { data } = await supabase
+          .from("admin_users")
+          .select("display_name, email, role")
+          .eq("id", user.id)
+          .single()
+        if (data) setCurrentUser(data)
+        else setCurrentUser({ display_name: user.email || "Admin", email: user.email || "", role: "admin" })
+      }
+    })
+  }, [])
+
+  const handleLogout = async () => {
+    setLoggingOut(true)
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push("/auth/login")
+    router.refresh()
+  }
+
+  const roleBadge = currentUser?.role === "super_admin"
+    ? "Super Admin"
+    : currentUser?.role === "editor"
+      ? "Editor"
+      : currentUser?.role === "viewer"
+        ? "Viewer"
+        : "Admin"
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -78,14 +122,37 @@ export function AdminShell({ children, title }: { children: ReactNode; title: st
               )
             })}
           </nav>
-          <div className="p-4 border-t border-border">
-            <Link
-              href="/"
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <LogOut className="h-4 w-4" />
-              Back to Store
-            </Link>
+          {/* Current user + logout */}
+          <div className="p-4 border-t border-border space-y-3">
+            {currentUser && (
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+                  <UserCircle className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium truncate">{currentUser.display_name}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">{roleBadge}</p>
+                </div>
+              </div>
+            )}
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleLogout}
+                disabled={loggingOut}
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <LogOut className="h-4 w-4" />
+                {loggingOut ? "Signing out..." : "Sign Out"}
+              </button>
+              <span className="text-border">|</span>
+              <Link
+                href="/"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                View Store
+              </Link>
+            </div>
           </div>
         </aside>
 
@@ -109,6 +176,17 @@ export function AdminShell({ children, title }: { children: ReactNode; title: st
                   <X className="h-5 w-5" />
                 </button>
               </div>
+              {currentUser && (
+                <div className="px-4 py-3 border-b border-border flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+                    <UserCircle className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{currentUser.display_name}</p>
+                    <p className="text-xs text-muted-foreground">{roleBadge}</p>
+                  </div>
+                </div>
+              )}
               <nav className="flex-1 py-4">
                 {navItems.map((item) => {
                   const isActive = pathname === item.href
@@ -129,6 +207,17 @@ export function AdminShell({ children, title }: { children: ReactNode; title: st
                   )
                 })}
               </nav>
+              <div className="p-4 border-t border-border flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  disabled={loggingOut}
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+                >
+                  <LogOut className="h-4 w-4" />
+                  {loggingOut ? "Signing out..." : "Sign Out"}
+                </button>
+              </div>
             </aside>
           </>
         )}
@@ -141,9 +230,21 @@ export function AdminShell({ children, title }: { children: ReactNode; title: st
               <ChevronRight className="h-3 w-3" />
               <span className="text-foreground font-medium">{title}</span>
             </div>
-            <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              View Store
-            </Link>
+            <div className="flex items-center gap-4">
+              {currentUser && (
+                <span className="text-xs text-muted-foreground">
+                  {currentUser.email}
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={handleLogout}
+                disabled={loggingOut}
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {loggingOut ? "Signing out..." : "Sign Out"}
+              </button>
+            </div>
           </div>
           <div className="p-4 lg:p-8">{children}</div>
         </main>

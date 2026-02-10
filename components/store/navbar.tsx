@@ -108,7 +108,7 @@ export function Navbar() {
               <div className="px-6 py-4 mt-4 space-y-3">
                 <a href="https://www.instagram.com/kallittofashions/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">Instagram</a>
                 <a href="https://www.tiktok.com/@kallittos" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">TikTok</a>
-                <a href="tel:+254780406059" className="flex items-center gap-2 text-sm font-medium"><Phone className="h-4 w-4" />0780 406 059</a>
+                <a href="tel:+254713809695" className="flex items-center gap-2 text-sm font-medium"><Phone className="h-4 w-4" />0713 809 695</a>
               </div>
             </SheetContent>
           </Sheet>
@@ -204,7 +204,7 @@ export function Navbar() {
               <Link href="/shop?filter=offers" className="text-sm font-medium hover:text-muted-foreground transition-colors">On Offer</Link>
               <Link href="/delivery" className="text-sm font-medium hover:text-muted-foreground transition-colors">Delivery Locations</Link>
             </nav>
-            <a href="tel:+254780406059" className="flex items-center gap-2 text-sm font-medium"><Phone className="h-4 w-4" />0780 406 059</a>
+            <a href="tel:+254713809695" className="flex items-center gap-2 text-sm font-medium"><Phone className="h-4 w-4" />0713 809 695</a>
           </div>
         </div>
       </div>

@@ -38,7 +38,7 @@ export function Footer() {
                 </svg>
               </a>
               <a
-                href="https://wa.me/254780406059"
+                href="https://wa.me/254713809695"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-10 h-10 flex items-center justify-center bg-[#25D366] rounded-lg hover:opacity-80 transition-opacity"
@@ -103,8 +103,8 @@ export function Footer() {
               </div>
               <div className="flex items-center gap-3">
                 <Phone className="h-4 w-4 text-background/40 flex-shrink-0" />
-                <a href="tel:+254780406059" className="text-background/60 text-sm hover:text-background transition-colors">
-                  0780 406 059
+                <a href="tel:+254713809695" className="text-background/60 text-sm hover:text-background transition-colors">
+                  0713 809 695
                 </a>
               </div>
               <div className="flex items-center gap-3">
@@ -153,7 +153,7 @@ export function Footer() {
                 @kallittos
               </a>
               <a
-                href="https://wa.me/254780406059"
+                href="https://wa.me/254713809695"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 text-background/60 text-sm hover:text-background transition-colors group"

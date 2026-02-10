@@ -241,7 +241,7 @@ export function ProductDetailPage({ slug }: { slug: string }) {
                   Add to Cart
                 </Button>
                 <a
-                  href={`https://wa.me/254780406059?text=${whatsappMessage}`}
+                  href={`https://wa.me/254713809695?text=${whatsappMessage}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex-1 flex items-center justify-center gap-2 bg-background text-foreground border border-foreground h-12 text-sm font-medium hover:bg-secondary transition-colors"

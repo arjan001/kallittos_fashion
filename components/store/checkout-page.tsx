@@ -112,7 +112,7 @@ export function CheckoutPage() {
             item.selectedVariations
               ? ` (${Object.entries(item.selectedVariations).map(([k, v]) => `${k}: ${v}`).join(", ")})`
               : ""
-          }`
+          }\n  Photo: ${item.product.images[0] || "N/A"}`
       )
       .join("\n")
 
@@ -124,7 +124,7 @@ export function CheckoutPage() {
       }\nAddress: ${formData.address}${formData.notes ? `\nNotes: ${formData.notes}` : ""}`
     )
 
-    window.open(`https://wa.me/254780406059?text=${message}`, "_blank")
+    window.open(`https://wa.me/254713809695?text=${message}`, "_blank")
     clearCart()
     setIsSubmitting(false)
     setOrderResult({ orderNumber: "WhatsApp" })
