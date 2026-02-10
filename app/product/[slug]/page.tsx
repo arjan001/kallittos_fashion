@@ -14,7 +14,9 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params
   try {
+    console.log("[v0] generateMetadata for slug:", slug)
     const product = await getProductBySlug(slug)
+    console.log("[v0] product found:", !!product)
     if (!product) return { title: "Product Not Found" }
     const desc = product.description.slice(0, 155) + (product.description.length > 155 ? "..." : "")
     return {
