@@ -190,7 +190,7 @@ export function TrackOrderForm() {
             {/* Status Badge */}
             <div className="px-5 pt-5">
               <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium border rounded-full ${config.bg} ${config.color}`}>
-                {isCancelled ? <XCircle className="h-3 w-3" /> : statusSteps[stepIndex]?.icon && <statusSteps[stepIndex].icon className="h-3 w-3" />}
+                {isCancelled ? <XCircle className="h-3 w-3" /> : (() => { const Icon = statusSteps[stepIndex]?.icon; return Icon ? <Icon className="h-3 w-3" /> : null })()}
                 {config.label}
               </span>
             </div>
