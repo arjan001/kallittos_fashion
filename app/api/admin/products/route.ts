@@ -1,0 +1,161 @@
+import { createClient } from "@/lib/supabase/server"
+import { NextResponse } from "next/server"
+
+export async function POST(request: Request) {
+  const supabase = await createClient()
+  const body = await request.json()
+
+  try {
+    // Find category ID by slug
+    const { data: category } = await supabase
+      .from("categories")
+      .select("id")
+      .eq("slug", body.categorySlug)
+      .single()
+
+    // Insert product
+    const { data: product, error: productError } = await supabase
+      .from("products")
+      .insert({
+        name: body.name,
+        slug: body.slug,
+        price: body.price,
+        original_price: body.originalPrice || null,
+        description: body.description || "",
+        category_id: category?.id || null,
+        is_new: body.isNew || false,
+        is_on_offer: body.isOnOffer || false,
+        offer_percentage: body.offerPercentage || 0,
+        in_stock: body.inStock ?? true,
+        is_featured: false,
+        condition: "new",
+      })
+      .select()
+      .single()
+
+    if (productError) throw productError
+
+    // Insert images
+    if (body.images?.length) {
+      const imageRows = body.images.map((url: string, i: number) => ({
+        product_id: product.id,
+        url,
+        alt_text: `${body.name} - Image ${i + 1}`,
+        sort_order: i,
+      }))
+      await supabase.from("product_images").insert(imageRows)
+    }
+
+    // Insert variations
+    if (body.variations?.length) {
+      const variationRows: { product_id: string; label: string; value: string; extra_price: number; in_stock: boolean }[] = []
+      for (const v of body.variations) {
+        for (const opt of v.options) {
+          variationRows.push({
+            product_id: product.id,
+            label: v.type,
+            value: opt,
+            extra_price: 0,
+            in_stock: true,
+          })
+        }
+      }
+      if (variationRows.length) {
+        await supabase.from("product_variations").insert(variationRows)
+      }
+    }
+
+    return NextResponse.json({ id: product.id })
+  } catch (error) {
+    console.error("Create product error:", error)
+    return NextResponse.json({ error: "Failed to create product" }, { status: 500 })
+  }
+}
+
+export async function PUT(request: Request) {
+  const supabase = await createClient()
+  const body = await request.json()
+
+  try {
+    const { data: category } = await supabase
+      .from("categories")
+      .select("id")
+      .eq("slug", body.categorySlug)
+      .single()
+
+    // Update product
+    const { error: updateError } = await supabase
+      .from("products")
+      .update({
+        name: body.name,
+        slug: body.slug,
+        price: body.price,
+        original_price: body.originalPrice || null,
+        description: body.description || "",
+        category_id: category?.id || null,
+        is_new: body.isNew || false,
+        is_on_offer: body.isOnOffer || false,
+        offer_percentage: body.offerPercentage || 0,
+        in_stock: body.inStock ?? true,
+      })
+      .eq("id", body.id)
+
+    if (updateError) throw updateError
+
+    // Replace images
+    await supabase.from("product_images").delete().eq("product_id", body.id)
+    if (body.images?.length) {
+      const imageRows = body.images.map((url: string, i: number) => ({
+        product_id: body.id,
+        url,
+        alt_text: `${body.name} - Image ${i + 1}`,
+        sort_order: i,
+      }))
+      await supabase.from("product_images").insert(imageRows)
+    }
+
+    // Replace variations
+    await supabase.from("product_variations").delete().eq("product_id", body.id)
+    if (body.variations?.length) {
+      const variationRows: { product_id: string; label: string; value: string; extra_price: number; in_stock: boolean }[] = []
+      for (const v of body.variations) {
+        for (const opt of v.options) {
+          variationRows.push({
+            product_id: body.id,
+            label: v.type,
+            value: opt,
+            extra_price: 0,
+            in_stock: true,
+          })
+        }
+      }
+      if (variationRows.length) {
+        await supabase.from("product_variations").insert(variationRows)
+      }
+    }
+
+    return NextResponse.json({ id: body.id })
+  } catch (error) {
+    console.error("Update product error:", error)
+    return NextResponse.json({ error: "Failed to update product" }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: Request) {
+  const supabase = await createClient()
+  const { searchParams } = new URL(request.url)
+  const id = searchParams.get("id")
+
+  if (!id) {
+    return NextResponse.json({ error: "Missing product ID" }, { status: 400 })
+  }
+
+  try {
+    const { error } = await supabase.from("products").delete().eq("id", id)
+    if (error) throw error
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("Delete product error:", error)
+    return NextResponse.json({ error: "Failed to delete product" }, { status: 500 })
+  }
+}

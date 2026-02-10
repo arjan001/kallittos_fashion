@@ -1,14 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { ChevronRight, Minus, Plus, X, Truck } from "lucide-react"
+import { ChevronRight, Minus, Plus, X, Truck, Loader2, CheckCircle } from "lucide-react"
 import { TopBar } from "./top-bar"
 import { Navbar } from "./navbar"
 import { Footer } from "./footer"
 import { useCart } from "@/lib/cart-context"
-import { deliveryLocations, formatPrice } from "@/lib/data"
+import { formatPrice } from "@/lib/data"
+import type { DeliveryLocation } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -18,6 +19,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 export function CheckoutPage() {
   const { items, removeItem, updateQuantity, totalPrice, clearCart } = useCart()
   const [deliveryLocation, setDeliveryLocation] = useState("")
+  const [deliveryLocations, setDeliveryLocations] = useState<DeliveryLocation[]>([])
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [orderResult, setOrderResult] = useState<{ orderNumber: string } | null>(null)
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -26,12 +30,81 @@ export function CheckoutPage() {
     notes: "",
   })
 
+  useEffect(() => {
+    fetch("/api/delivery-locations")
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) setDeliveryLocations(data)
+      })
+      .catch(() => {})
+  }, [])
+
   const selectedDelivery = deliveryLocations.find((l) => l.id === deliveryLocation)
   const deliveryFee = selectedDelivery?.fee || 0
   const grandTotal = totalPrice + deliveryFee
   const freeShipping = totalPrice >= 5000
+  const isFormValid = formData.name && formData.phone && formData.address
 
-  const handleWhatsAppCheckout = () => {
+  const buildOrderPayload = (orderedVia: string) => ({
+    customerName: formData.name,
+    customerEmail: formData.email || undefined,
+    customerPhone: formData.phone,
+    deliveryLocationId: deliveryLocation || undefined,
+    deliveryAddress: formData.address,
+    deliveryFee: freeShipping ? 0 : deliveryFee,
+    subtotal: totalPrice,
+    total: freeShipping ? totalPrice : grandTotal,
+    notes: formData.notes || undefined,
+    orderedVia,
+    items: items.map((item) => ({
+      productId: item.product.id,
+      productName: item.product.name,
+      productImage: item.product.images[0],
+      variation: item.selectedVariations
+        ? Object.entries(item.selectedVariations).map(([k, v]) => `${k}: ${v}`).join(", ")
+        : undefined,
+      quantity: item.quantity,
+      unitPrice: item.product.price,
+      totalPrice: item.product.price * item.quantity,
+    })),
+  })
+
+  const handleNormalCheckout = async () => {
+    if (!isFormValid) return
+    setIsSubmitting(true)
+    try {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(buildOrderPayload("website")),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setOrderResult(data)
+        clearCart()
+      }
+    } catch (err) {
+      console.error("Order failed:", err)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleWhatsAppCheckout = async () => {
+    if (!isFormValid) return
+    setIsSubmitting(true)
+
+    // Save order to DB first
+    try {
+      await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(buildOrderPayload("whatsapp")),
+      })
+    } catch {
+      // Continue even if saving fails -- the WhatsApp message is the primary action
+    }
+
     const orderItems = items
       .map(
         (item) =>
@@ -52,6 +125,45 @@ export function CheckoutPage() {
     )
 
     window.open(`https://wa.me/254780406059?text=${message}`, "_blank")
+    clearCart()
+    setIsSubmitting(false)
+    setOrderResult({ orderNumber: "WhatsApp" })
+  }
+
+  // Order confirmation screen
+  if (orderResult) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <TopBar />
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center max-w-md mx-auto px-4">
+            <CheckCircle className="h-16 w-16 mx-auto text-foreground mb-4" />
+            <h1 className="text-2xl font-serif font-bold">Order Placed!</h1>
+            {orderResult.orderNumber !== "WhatsApp" ? (
+              <>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Your order <span className="font-semibold text-foreground">{orderResult.orderNumber}</span> has been received.
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  We will contact you on your phone to confirm delivery details.
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground mt-2">
+                Complete your order on WhatsApp. We will confirm and arrange delivery.
+              </p>
+            )}
+            <Link href="/shop">
+              <Button className="mt-6 bg-foreground text-background hover:bg-foreground/90">
+                Continue Shopping
+              </Button>
+            </Link>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    )
   }
 
   if (items.length === 0) {
@@ -193,7 +305,7 @@ export function CheckoutPage() {
 
                 <div className="space-y-4 max-h-64 overflow-y-auto">
                   {items.map((item) => (
-                    <div key={item.product.id} className="flex gap-3">
+                    <div key={`${item.product.id}-${JSON.stringify(item.selectedVariations)}`} className="flex gap-3">
                       <div className="relative w-16 h-20 flex-shrink-0 bg-secondary rounded-sm overflow-hidden">
                         <Image
                           src={item.product.images[0] || "/placeholder.svg"}
@@ -204,6 +316,11 @@ export function CheckoutPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="text-sm font-medium truncate">{item.product.name}</h3>
+                        {item.selectedVariations && (
+                          <p className="text-xs text-muted-foreground">
+                            {Object.entries(item.selectedVariations).map(([k, v]) => `${k}: ${v}`).join(", ")}
+                          </p>
+                        )}
                         <p className="text-sm text-muted-foreground">{formatPrice(item.product.price)}</p>
                         <div className="flex items-center gap-2 mt-1.5">
                           <button
@@ -243,7 +360,7 @@ export function CheckoutPage() {
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Delivery</span>
                     <span>
-                      {freeShipping ? "FREE" : selectedDelivery ? formatPrice(deliveryFee) : "—"}
+                      {freeShipping ? "FREE" : selectedDelivery ? formatPrice(deliveryFee) : "\u2014"}
                     </span>
                   </div>
                   <div className="flex justify-between text-base font-semibold pt-2 border-t border-border">
@@ -253,18 +370,46 @@ export function CheckoutPage() {
                 </div>
 
                 <div className="mt-6 space-y-3">
+                  {/* Normal Checkout */}
+                  <Button
+                    onClick={handleNormalCheckout}
+                    disabled={!isFormValid || isSubmitting}
+                    className="w-full bg-foreground text-background hover:bg-foreground/90 h-12 text-sm font-medium disabled:opacity-40"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Placing Order...
+                      </>
+                    ) : (
+                      "Place Order"
+                    )}
+                  </Button>
+
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-border" />
+                    </div>
+                    <div className="relative flex justify-center text-xs">
+                      <span className="bg-secondary/50 px-3 text-muted-foreground">or</span>
+                    </div>
+                  </div>
+
+                  {/* WhatsApp Checkout */}
                   <Button
                     onClick={handleWhatsAppCheckout}
-                    disabled={!formData.name || !formData.phone || !formData.address}
-                    className="w-full bg-foreground text-background hover:bg-foreground/90 h-12 text-sm font-medium disabled:opacity-40"
+                    disabled={!isFormValid || isSubmitting}
+                    variant="outline"
+                    className="w-full h-12 text-sm font-medium disabled:opacity-40 bg-transparent"
                   >
                     <svg className="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
                     </svg>
-                    Complete Order via WhatsApp
+                    Complete via WhatsApp
                   </Button>
+
                   <p className="text-xs text-muted-foreground text-center">
-                    You will be redirected to WhatsApp to confirm your order
+                    We will confirm your order and arrange delivery
                   </p>
                 </div>
               </div>

@@ -52,6 +52,7 @@ export function Hero() {
                 alt="Ripped and rugged jeans"
                 fill
                 className="object-cover group-hover:scale-105 transition-transform duration-500"
+                priority
               />
               <div className="absolute inset-0 bg-foreground/30" />
               <div className="absolute bottom-0 left-0 p-5">

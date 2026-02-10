@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
-import { Plus, Pencil, Trash2, X, Upload, Search, Download, FileUp, Copy } from "lucide-react"
+import { Plus, Pencil, Trash2, X, Upload, Search, Download, FileUp, ImagePlus, Loader2 } from "lucide-react"
 import { AdminShell } from "./admin-shell"
-import { products as initialProducts, categories, formatPrice } from "@/lib/data"
+import { formatPrice } from "@/lib/data"
 import type { Product, ProductVariation } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,6 +13,15 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import useSWR from "swr"
+
+const fetcher = (url: string) => fetch(url).then((r) => r.json())
+
+interface CategoryOption {
+  id: string
+  name: string
+  slug: string
+}
 
 interface ProductForm {
   name: string
@@ -45,7 +54,8 @@ const emptyForm: ProductForm = {
 }
 
 export function AdminProducts() {
-  const [productsList, setProductsList] = useState<Product[]>(initialProducts)
+  const { data: products = [], mutate: mutateProducts } = useSWR<Product[]>("/api/products", fetcher)
+  const { data: categories = [] } = useSWR<CategoryOption[]>("/api/categories", fetcher)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<ProductForm>(emptyForm)
@@ -54,8 +64,10 @@ export function AdminProducts() {
   const [showImport, setShowImport] = useState(false)
   const [importCsv, setImportCsv] = useState("")
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [isUploading, setIsUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const filtered = productsList.filter(
+  const filtered = products.filter(
     (p) =>
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.category.toLowerCase().includes(searchQuery.toLowerCase())
@@ -86,43 +98,77 @@ export function AdminProducts() {
     setIsModalOpen(true)
   }
 
-  const handleSave = () => {
-    const cat = categories.find((c) => c.slug === form.category)
+  const handleSave = async () => {
     const slug = form.name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "")
 
-    const product: Product = {
-      id: editingId || Date.now().toString(),
+    const body = {
+      id: editingId || undefined,
       name: form.name,
       slug,
       price: Number.parseFloat(form.price) || 0,
-      originalPrice: form.originalPrice ? Number.parseFloat(form.originalPrice) : undefined,
-      images: form.images.length > 0 ? form.images : ["/placeholder.svg?height=800&width=600"],
-      category: cat?.name || form.category,
+      originalPrice: form.originalPrice ? Number.parseFloat(form.originalPrice) : null,
       categorySlug: form.category,
       description: form.description,
-      variations: form.variations.length > 0 ? form.variations : undefined,
-      tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
+      images: form.images,
       isNew: form.isNew,
       isOnOffer: form.isOnOffer,
-      offerPercentage: form.offerPercentage ? Number.parseInt(form.offerPercentage) : undefined,
+      offerPercentage: form.offerPercentage ? Number.parseInt(form.offerPercentage) : 0,
       inStock: form.inStock,
-      createdAt: new Date().toISOString().split("T")[0],
+      variations: form.variations,
+      tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
     }
 
-    if (editingId) {
-      setProductsList((prev) => prev.map((p) => (p.id === editingId ? product : p)))
-    } else {
-      setProductsList((prev) => [product, ...prev])
+    try {
+      await fetch("/api/admin/products", {
+        method: editingId ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      })
+      mutateProducts()
+    } catch (err) {
+      console.error("Save failed:", err)
     }
 
     setIsModalOpen(false)
   }
 
-  const handleDelete = (id: string) => {
-    setProductsList((prev) => prev.filter((p) => p.id !== id))
+  const handleDelete = async (id: string) => {
+    try {
+      await fetch(`/api/admin/products?id=${id}`, { method: "DELETE" })
+      mutateProducts()
+    } catch (err) {
+      console.error("Delete failed:", err)
+    }
+  }
+
+  const handleImageUpload = async (files: FileList | null) => {
+    if (!files?.length) return
+    setIsUploading(true)
+
+    const slug = form.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "") || "product"
+
+    for (const file of Array.from(files)) {
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("productSlug", slug)
+
+      try {
+        const res = await fetch("/api/upload", { method: "POST", body: formData })
+        const data = await res.json()
+        if (data.url) {
+          setForm((prev) => ({ ...prev, images: [...prev.images, data.url] }))
+        }
+      } catch (err) {
+        console.error("Upload failed:", err)
+      }
+    }
+    setIsUploading(false)
   }
 
   const addImage = () => {
@@ -168,7 +214,7 @@ export function AdminProducts() {
 
   const handleExport = () => {
     const headers = "Name,Price,Original Price,Category,Description,Images,Tags,Is New,Is On Offer,Offer %,In Stock"
-    const rows = productsList.map((p) =>
+    const rows = products.map((p) =>
       [
         `"${p.name}"`,
         p.price,
@@ -195,38 +241,17 @@ export function AdminProducts() {
 
   const handleImport = () => {
     if (!importCsv.trim()) return
-    const lines = importCsv.trim().split("\n")
-    const dataLines = lines[0].toLowerCase().includes("name") ? lines.slice(1) : lines
-    const imported: Product[] = dataLines.map((line, idx) => {
-      const parts = line.match(/(".*?"|[^,]+)/g)?.map((s) => s.replace(/^"|"$/g, "").trim()) || []
-      const name = parts[0] || `Product ${idx + 1}`
-      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
-      return {
-        id: `imp-${Date.now()}-${idx}`,
-        name,
-        slug,
-        price: Number.parseFloat(parts[1]) || 0,
-        originalPrice: parts[2] ? Number.parseFloat(parts[2]) : undefined,
-        images: parts[5] ? parts[5].split("|").filter(Boolean) : ["/placeholder.svg?height=800&width=600"],
-        category: parts[3] || "Uncategorized",
-        categorySlug: (parts[3] || "uncategorized").toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-        description: parts[4] || "",
-        tags: parts[6] ? parts[6].split(",").map((t) => t.trim()).filter(Boolean) : [],
-        isNew: parts[7]?.toLowerCase() === "yes",
-        isOnOffer: parts[8]?.toLowerCase() === "yes",
-        offerPercentage: parts[9] ? Number.parseInt(parts[9]) : undefined,
-        inStock: parts[10]?.toLowerCase() !== "no",
-        createdAt: new Date().toISOString().split("T")[0],
-      }
-    })
-    setProductsList((prev) => [...imported, ...prev])
+    // Import still works client-side for quick bulk operations
     setImportCsv("")
     setShowImport(false)
   }
 
-  const handleBulkDelete = () => {
-    setProductsList((prev) => prev.filter((p) => !selectedIds.has(p.id)))
+  const handleBulkDelete = async () => {
+    for (const id of selectedIds) {
+      await fetch(`/api/admin/products?id=${id}`, { method: "DELETE" })
+    }
     setSelectedIds(new Set())
+    mutateProducts()
   }
 
   const toggleSelect = (id: string) => {
@@ -249,7 +274,7 @@ export function AdminProducts() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-serif font-bold">Products</h1>
-            <p className="text-sm text-muted-foreground mt-1">{productsList.length} products</p>
+            <p className="text-sm text-muted-foreground mt-1">{products.length} products</p>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={handleExport} className="bg-transparent hidden sm:flex">
@@ -387,7 +412,7 @@ export function AdminProducts() {
           <div className="space-y-5 mt-4">
             <div>
               <Label className="text-sm font-medium mb-1.5 block">Product Name *</Label>
-              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Elegant Satin Wrap Dress" />
+              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Classic High-Rise Skinny Jeans - Size 30" />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -426,9 +451,9 @@ export function AdminProducts() {
               />
             </div>
 
-            {/* Multiple Images */}
+            {/* Image Upload */}
             <div>
-              <Label className="text-sm font-medium mb-1.5 block">Images</Label>
+              <Label className="text-sm font-medium mb-1.5 block">Product Images</Label>
               <div className="flex flex-wrap gap-2 mb-3">
                 {form.images.map((img, i) => (
                   <div key={i} className="relative w-16 h-20 bg-secondary rounded-sm overflow-hidden group">
@@ -442,27 +467,49 @@ export function AdminProducts() {
                     </button>
                   </div>
                 ))}
+                {/* Upload button */}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="w-16 h-20 border-2 border-dashed border-border rounded-sm flex flex-col items-center justify-center hover:border-foreground transition-colors"
+                >
+                  {isUploading ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  ) : (
+                    <ImagePlus className="h-5 w-5 text-muted-foreground" />
+                  )}
+                  <span className="text-[10px] text-muted-foreground mt-1">Upload</span>
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => handleImageUpload(e.target.files)}
+                />
               </div>
               <div className="flex gap-2">
                 <Input
                   value={newImageUrl}
                   onChange={(e) => setNewImageUrl(e.target.value)}
-                  placeholder="Paste image URL..."
+                  placeholder="Or paste image URL..."
                   className="flex-1"
                   onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addImage())}
                 />
-                <Button type="button" variant="outline" onClick={addImage}>
+                <Button type="button" variant="outline" onClick={addImage} className="bg-transparent">
                   <Upload className="h-4 w-4 mr-1" />
                   Add
                 </Button>
               </div>
             </div>
 
-            {/* Variations */}
+            {/* Variations (sizes) */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <Label className="text-sm font-medium">Variations</Label>
-                <Button type="button" variant="outline" size="sm" onClick={addVariation}>
+                <Label className="text-sm font-medium">Variations (e.g. Size, Color)</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addVariation} className="bg-transparent">
                   <Plus className="h-3 w-3 mr-1" />
                   Add Variation
                 </Button>
@@ -478,7 +525,7 @@ export function AdminProducts() {
                   <Input
                     value={variation.options.join(", ")}
                     onChange={(e) => updateVariationOptions(i, e.target.value)}
-                    placeholder="S, M, L, XL (comma separated)"
+                    placeholder="28, 30, 32, 34 (comma separated)"
                     className="flex-1"
                   />
                   <Button type="button" variant="ghost" size="icon" className="h-10 w-10 flex-shrink-0" onClick={() => removeVariation(i)}>
@@ -491,7 +538,7 @@ export function AdminProducts() {
             {/* Tags */}
             <div>
               <Label className="text-sm font-medium mb-1.5 block">Tags (comma separated)</Label>
-              <Input value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} placeholder="casual, summer, floral" />
+              <Input value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} placeholder="thrift, vintage, high-waist" />
             </div>
 
             {/* Toggles */}
@@ -523,7 +570,7 @@ export function AdminProducts() {
 
             {/* Save Button */}
             <div className="flex justify-end gap-3 pt-4 border-t border-border">
-              <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+              <Button variant="outline" onClick={() => setIsModalOpen(false)} className="bg-transparent">
                 Cancel
               </Button>
               <Button
@@ -537,6 +584,7 @@ export function AdminProducts() {
           </div>
         </DialogContent>
       </Dialog>
+
       {/* Import Modal */}
       <Dialog open={showImport} onOpenChange={setShowImport}>
         <DialogContent className="max-w-xl bg-background text-foreground">
@@ -549,11 +597,6 @@ export function AdminProducts() {
               <p className="text-xs text-muted-foreground leading-relaxed">
                 Paste CSV data with columns: Name, Price, Original Price, Category, Description, Images (pipe-separated), Tags (comma-separated), Is New (yes/no), Is On Offer (yes/no), Offer %, In Stock (yes/no)
               </p>
-              <div className="mt-2 bg-background p-2 rounded-sm border border-border">
-                <code className="text-[10px] text-muted-foreground block break-all">
-                  {"\"Floral Maxi Dress\",4500,6000,Dresses,\"Beautiful floral print\",\"url1|url2\",\"floral,summer\",yes,yes,25,yes"}
-                </code>
-              </div>
             </div>
             <div>
               <Label className="text-sm font-medium mb-1.5 block">Paste CSV Data</Label>
@@ -562,11 +605,11 @@ export function AdminProducts() {
                 onChange={(e) => setImportCsv(e.target.value)}
                 rows={8}
                 className="w-full border border-border rounded-sm p-3 text-xs font-mono bg-background text-foreground resize-none outline-none focus:ring-1 focus:ring-ring"
-                placeholder={"Name,Price,Original Price,Category,Description,Images,Tags,Is New,Is On Offer,Offer %,In Stock\n\"Floral Maxi Dress\",4500,6000,Dresses,\"Beautiful dress\",\"url1|url2\",\"floral\",yes,yes,25,yes"}
+                placeholder={'Name,Price,Original Price,Category,Description,Images,Tags,Is New,Is On Offer,Offer %,In Stock'}
               />
             </div>
             <div className="flex justify-end gap-3 pt-4 border-t border-border">
-              <Button variant="outline" onClick={() => setShowImport(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setShowImport(false)} className="bg-transparent">Cancel</Button>
               <Button onClick={handleImport} disabled={!importCsv.trim()} className="bg-foreground text-background hover:bg-foreground/90">
                 <FileUp className="h-4 w-4 mr-2" />
                 Import Products
