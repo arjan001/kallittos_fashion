@@ -1,8 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Eye, Truck, CheckCircle, Clock, Package, XCircle, Search } from "lucide-react"
+import { usePagination } from "@/hooks/use-pagination"
+import { PaginationControls } from "@/components/pagination-controls"
 import { AdminShell } from "./admin-shell"
 import { formatPrice } from "@/lib/format"
 import { Button } from "@/components/ui/button"
@@ -53,6 +55,10 @@ export function AdminOrders() {
     const matchStatus = statusFilter === "all" || o.status === statusFilter
     return matchSearch && matchStatus
   })
+
+  const { paginatedItems, currentPage, totalPages, totalItems, itemsPerPage, goToPage, changePerPage, resetPage } = usePagination(filtered, { defaultPerPage: 15 })
+
+  useEffect(() => { resetPage() }, [search, statusFilter])
 
   const updateStatus = async (orderId: string, newStatus: OrderStatus) => {
     await fetch("/api/admin/orders", {
@@ -130,7 +136,7 @@ export function AdminOrders() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filtered.map((order) => {
+                {paginatedItems.map((order) => {
                   const config = statusConfig[order.status]
                   return (
                     <tr key={order.id} className="hover:bg-secondary/50 transition-colors">
@@ -175,6 +181,16 @@ export function AdminOrders() {
             </table>
           </div>
         </div>
+
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+          onPageChange={goToPage}
+          onItemsPerPageChange={changePerPage}
+          perPageOptions={[10, 15, 25, 50]}
+        />
       </div>
 
       <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>

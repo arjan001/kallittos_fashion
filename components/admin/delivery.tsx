@@ -2,6 +2,8 @@
 
 import { useState } from "react"
 import { Plus, Pencil, Trash2, MapPin } from "lucide-react"
+import { usePagination } from "@/hooks/use-pagination"
+import { PaginationControls } from "@/components/pagination-controls"
 import { AdminShell } from "./admin-shell"
 import { formatPrice } from "@/lib/format"
 import { Button } from "@/components/ui/button"
@@ -25,6 +27,8 @@ export function AdminDelivery() {
   const [isOpen, setIsOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [form, setForm] = useState({ name: "", fee: "", estimatedDays: "" })
+
+  const { paginatedItems, currentPage, totalPages, totalItems, itemsPerPage, goToPage, changePerPage } = usePagination(locations, { defaultPerPage: 10 })
 
   const openNew = () => { setEditId(null); setForm({ name: "", fee: "", estimatedDays: "" }); setIsOpen(true) }
   const openEdit = (loc: AdminDelivery) => {
@@ -69,7 +73,7 @@ export function AdminDelivery() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {locations.map((loc) => (
+              {paginatedItems.map((loc) => (
                 <tr key={loc.id} className="hover:bg-secondary/50 transition-colors">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
@@ -90,6 +94,16 @@ export function AdminDelivery() {
             </tbody>
           </table>
         </div>
+
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+          onPageChange={goToPage}
+          onItemsPerPageChange={changePerPage}
+          perPageOptions={[10, 20, 50]}
+        />
       </div>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>

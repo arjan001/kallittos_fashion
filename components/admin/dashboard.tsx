@@ -1,6 +1,8 @@
 "use client"
 
-import { Package, Tag, Percent, TrendingUp, ShoppingBag, Eye, ShoppingCart } from "lucide-react"
+import { useState } from "react"
+import { Package, Tag, Percent, TrendingUp, ShoppingBag, Eye, ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { AdminShell } from "./admin-shell"
 import { formatPrice } from "@/lib/format"
 import Link from "next/link"
@@ -28,6 +30,14 @@ export function AdminDashboard() {
   const recentProducts = data?.recentProducts || []
   const offerProducts = data?.offerProducts || []
   const recentOrders = data?.recentOrders || []
+
+  const ITEMS_PER_PAGE = 5
+  const [prodPage, setProdPage] = useState(1)
+  const [orderPage, setOrderPage] = useState(1)
+  const prodTotalPages = Math.max(1, Math.ceil(recentProducts.length / ITEMS_PER_PAGE))
+  const orderTotalPages = Math.max(1, Math.ceil(recentOrders.length / ITEMS_PER_PAGE))
+  const pagedProducts = recentProducts.slice((prodPage - 1) * ITEMS_PER_PAGE, prodPage * ITEMS_PER_PAGE)
+  const pagedOrders = recentOrders.slice((orderPage - 1) * ITEMS_PER_PAGE, orderPage * ITEMS_PER_PAGE)
 
   return (
     <AdminShell title="Dashboard">
@@ -72,7 +82,7 @@ export function AdminDashboard() {
               <Link href="/admin/products" className="text-xs text-muted-foreground hover:text-foreground">View All</Link>
             </div>
             <div className="divide-y divide-border">
-              {recentProducts.map((product) => (
+              {pagedProducts.map((product) => (
                 <div key={product.id} className="flex items-center justify-between px-5 py-3">
                   <div className="flex items-center gap-3">
                     <ShoppingBag className="h-4 w-4 text-muted-foreground" />
@@ -88,6 +98,15 @@ export function AdminDashboard() {
                 <div className="px-5 py-8 text-center text-sm text-muted-foreground">No products yet</div>
               )}
             </div>
+            {prodTotalPages > 1 && (
+              <div className="flex items-center justify-between px-5 py-2.5 border-t border-border bg-secondary/30">
+                <span className="text-[11px] text-muted-foreground">{prodPage}/{prodTotalPages}</span>
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" disabled={prodPage === 1} onClick={() => setProdPage(p => p - 1)}><ChevronLeft className="h-3.5 w-3.5" /></Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" disabled={prodPage === prodTotalPages} onClick={() => setProdPage(p => p + 1)}><ChevronRight className="h-3.5 w-3.5" /></Button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="border border-border rounded-sm">
@@ -96,7 +115,7 @@ export function AdminDashboard() {
               <Link href="/admin/orders" className="text-xs text-muted-foreground hover:text-foreground">View All</Link>
             </div>
             <div className="divide-y divide-border">
-              {recentOrders.map((order) => (
+              {pagedOrders.map((order) => (
                 <div key={order.id} className="flex items-center justify-between px-5 py-3">
                   <div className="flex items-center gap-3">
                     <ShoppingCart className="h-4 w-4 text-muted-foreground" />
@@ -115,6 +134,15 @@ export function AdminDashboard() {
                 <div className="px-5 py-8 text-center text-sm text-muted-foreground">No orders yet</div>
               )}
             </div>
+            {orderTotalPages > 1 && (
+              <div className="flex items-center justify-between px-5 py-2.5 border-t border-border bg-secondary/30">
+                <span className="text-[11px] text-muted-foreground">{orderPage}/{orderTotalPages}</span>
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" disabled={orderPage === 1} onClick={() => setOrderPage(p => p - 1)}><ChevronLeft className="h-3.5 w-3.5" /></Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" disabled={orderPage === orderTotalPages} onClick={() => setOrderPage(p => p + 1)}><ChevronRight className="h-3.5 w-3.5" /></Button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

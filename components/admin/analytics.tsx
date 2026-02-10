@@ -1,52 +1,90 @@
 "use client"
 
+import { useState } from "react"
 import { AdminShell } from "./admin-shell"
 import { formatPrice } from "@/lib/format"
-import { TrendingUp, TrendingDown, Users, ShoppingBag, Eye, DollarSign, ArrowUpRight, ArrowDownRight } from "lucide-react"
+import { TrendingUp, TrendingDown, Users, ShoppingBag, Eye, DollarSign, ArrowUpRight, ArrowDownRight, ChevronLeft, ChevronRight } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import useSWR from "swr"
 
-const stats = [
-  { label: "Total Revenue", value: formatPrice(285000), change: "+18.2%", up: true, icon: DollarSign },
-  { label: "Total Orders", value: "47", change: "+12.5%", up: true, icon: ShoppingBag },
-  { label: "Site Visitors", value: "1,234", change: "+8.3%", up: true, icon: Users },
-  { label: "Conversion Rate", value: "3.8%", change: "-0.4%", up: false, icon: TrendingUp },
-]
+const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
-const revenueByMonth = [
-  { month: "Sep", value: 32000 },
-  { month: "Oct", value: 41000 },
-  { month: "Nov", value: 56000 },
-  { month: "Dec", value: 72000 },
-  { month: "Jan", value: 48000 },
-  { month: "Feb", value: 36000 },
-]
+interface Order {
+  id: string; total: number; status: string; date: string; customer: string; orderNo: string
+  items: { name: string; qty: number; price: number }[]
+}
 
-const topProducts = [
-  { name: "Elegant Satin Wrap Dress", sold: 18, revenue: 63000 },
-  { name: "Oversized Linen Blazer", sold: 14, revenue: 58800 },
-  { name: "Classic Black Bodysuit", sold: 22, revenue: 39600 },
-  { name: "Gold Layered Necklace Set", sold: 16, revenue: 35200 },
-  { name: "Tweed Button Jacket", sold: 8, revenue: 38400 },
-]
-
-const topCategories = [
-  { name: "Dresses", orders: 32, percentage: 34 },
-  { name: "Tops", orders: 24, percentage: 26 },
-  { name: "Jackets", orders: 18, percentage: 19 },
-  { name: "Jewellery", orders: 12, percentage: 13 },
-  { name: "Bags & Purses", orders: 8, percentage: 8 },
-]
-
-const recentActivity = [
-  { action: "New order", detail: "KF-048 by Amina W.", time: "2 min ago" },
-  { action: "Product viewed", detail: "Elegant Satin Wrap Dress (12 views)", time: "5 min ago" },
-  { action: "Order dispatched", detail: "KF-045 to Mombasa", time: "1 hour ago" },
-  { action: "New subscriber", detail: "grace@email.com", time: "2 hours ago" },
-  { action: "Product added to cart", detail: "Ribbed Crop Top (3 times)", time: "3 hours ago" },
-]
-
-const maxRevenue = Math.max(...revenueByMonth.map((r) => r.value))
+interface Product {
+  id: string; name: string; price: number; category: string
+}
 
 export function AdminAnalytics() {
+  const { data: orders = [] } = useSWR<Order[]>("/api/admin/orders", fetcher)
+  const { data: products = [] } = useSWR<Product[]>("/api/products", fetcher)
+  const [prodPage, setProdPage] = useState(1)
+  const [activityPage, setActivityPage] = useState(1)
+
+  // Compute live stats
+  const totalRevenue = orders.reduce((sum, o) => sum + (o.status !== "cancelled" ? o.total : 0), 0)
+  const totalOrders = orders.length
+  const deliveredOrders = orders.filter((o) => o.status === "delivered").length
+
+  const stats = [
+    { label: "Total Revenue", value: formatPrice(totalRevenue), change: `${deliveredOrders} delivered`, up: true, icon: DollarSign },
+    { label: "Total Orders", value: totalOrders.toString(), change: `${orders.filter(o => o.status === "pending").length} pending`, up: true, icon: ShoppingBag },
+    { label: "Total Products", value: products.length.toString(), change: "Live from DB", up: true, icon: Users },
+    { label: "Avg Order Value", value: totalOrders > 0 ? formatPrice(Math.round(totalRevenue / totalOrders)) : formatPrice(0), change: "Per order", up: true, icon: TrendingUp },
+  ]
+
+  // Revenue by month from actual orders
+  const monthMap: Record<string, number> = {}
+  orders.forEach((o) => {
+    if (o.status === "cancelled") return
+    const d = new Date(o.date)
+    const key = d.toLocaleString("default", { month: "short", year: "2-digit" })
+    monthMap[key] = (monthMap[key] || 0) + o.total
+  })
+  const revenueByMonth = Object.entries(monthMap).slice(-6).map(([month, value]) => ({ month, value }))
+  if (revenueByMonth.length === 0) revenueByMonth.push({ month: "Now", value: 0 })
+  const maxRevenue = Math.max(...revenueByMonth.map((r) => r.value), 1)
+
+  // Top products from order items
+  const productSales: Record<string, { name: string; sold: number; revenue: number }> = {}
+  orders.forEach((o) => {
+    if (o.status === "cancelled") return
+    o.items.forEach((item) => {
+      const key = item.name
+      if (!productSales[key]) productSales[key] = { name: key, sold: 0, revenue: 0 }
+      productSales[key].sold += item.qty
+      productSales[key].revenue += item.price * item.qty
+    })
+  })
+  const topProducts = Object.values(productSales).sort((a, b) => b.revenue - a.revenue)
+  const PROD_PER_PAGE = 5
+  const prodTotalPages = Math.max(1, Math.ceil(topProducts.length / PROD_PER_PAGE))
+  const pagedTopProducts = topProducts.slice((prodPage - 1) * PROD_PER_PAGE, prodPage * PROD_PER_PAGE)
+
+  // Category breakdown from orders
+  const catCount: Record<string, number> = {}
+  products.forEach((p) => { catCount[p.category] = (catCount[p.category] || 0) + 1 })
+  const totalCatProducts = products.length || 1
+  const topCategories = Object.entries(catCount)
+    .map(([name, count]) => ({ name, orders: count, percentage: Math.round((count / totalCatProducts) * 100) }))
+    .sort((a, b) => b.orders - a.orders)
+    .slice(0, 5)
+
+  // Recent activity from orders (as live feed)
+  const recentActivity = orders
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .map((o) => {
+      const statusAction = o.status === "pending" ? "New order" : o.status === "dispatched" ? "Order dispatched" : o.status === "delivered" ? "Order delivered" : `Order ${o.status}`
+      const ago = getTimeAgo(new Date(o.date))
+      return { action: statusAction, detail: `${o.orderNo} by ${o.customer} - ${formatPrice(o.total)}`, time: ago }
+    })
+  const ACT_PER_PAGE = 5
+  const actTotalPages = Math.max(1, Math.ceil(recentActivity.length / ACT_PER_PAGE))
+  const pagedActivity = recentActivity.slice((activityPage - 1) * ACT_PER_PAGE, activityPage * ACT_PER_PAGE)
+
   return (
     <AdminShell title="Analytics">
       <div className="space-y-8">
@@ -93,10 +131,12 @@ export function AdminAnalytics() {
               <h2 className="text-sm font-semibold">Top Selling Products</h2>
             </div>
             <div className="divide-y divide-border">
-              {topProducts.map((p, i) => (
+              {pagedTopProducts.length === 0 ? (
+                <div className="px-5 py-8 text-center text-sm text-muted-foreground">No sales data yet</div>
+              ) : pagedTopProducts.map((p, i) => (
                 <div key={p.name} className="flex items-center justify-between px-5 py-3">
                   <div className="flex items-center gap-3">
-                    <span className="text-xs text-muted-foreground w-5">{i + 1}.</span>
+                    <span className="text-xs text-muted-foreground w-5">{(prodPage - 1) * PROD_PER_PAGE + i + 1}.</span>
                     <div>
                       <p className="text-sm font-medium">{p.name}</p>
                       <p className="text-xs text-muted-foreground">{p.sold} sold</p>
@@ -106,6 +146,15 @@ export function AdminAnalytics() {
                 </div>
               ))}
             </div>
+            {prodTotalPages > 1 && (
+              <div className="flex items-center justify-between px-5 py-2.5 border-t border-border bg-secondary/30">
+                <span className="text-[11px] text-muted-foreground">{prodPage}/{prodTotalPages}</span>
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" disabled={prodPage === 1} onClick={() => setProdPage(p => p - 1)}><ChevronLeft className="h-3.5 w-3.5" /></Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" disabled={prodPage === prodTotalPages} onClick={() => setProdPage(p => p + 1)}><ChevronRight className="h-3.5 w-3.5" /></Button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Top Categories */}
@@ -114,6 +163,9 @@ export function AdminAnalytics() {
               <h2 className="text-sm font-semibold">Orders by Category</h2>
             </div>
             <div className="p-5 space-y-4">
+              {topCategories.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">No category data</p>
+              )}
               {topCategories.map((c) => (
                 <div key={c.name}>
                   <div className="flex items-center justify-between mb-1.5">
@@ -135,7 +187,9 @@ export function AdminAnalytics() {
             <h2 className="text-sm font-semibold">Recent Activity</h2>
           </div>
           <div className="divide-y divide-border">
-            {recentActivity.map((a, i) => (
+            {pagedActivity.length === 0 ? (
+              <div className="px-5 py-8 text-center text-sm text-muted-foreground">No recent activity</div>
+            ) : pagedActivity.map((a, i) => (
               <div key={i} className="flex items-center justify-between px-5 py-3">
                 <div>
                   <p className="text-sm font-medium">{a.action}</p>
@@ -145,8 +199,30 @@ export function AdminAnalytics() {
               </div>
             ))}
           </div>
+          {actTotalPages > 1 && (
+            <div className="flex items-center justify-between px-5 py-2.5 border-t border-border bg-secondary/30">
+              <span className="text-[11px] text-muted-foreground">Page {activityPage}/{actTotalPages}</span>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon" className="h-7 w-7" disabled={activityPage === 1} onClick={() => setActivityPage(p => p - 1)}><ChevronLeft className="h-3.5 w-3.5" /></Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7" disabled={activityPage === actTotalPages} onClick={() => setActivityPage(p => p + 1)}><ChevronRight className="h-3.5 w-3.5" /></Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </AdminShell>
   )
+}
+
+function getTimeAgo(date: Date): string {
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  if (diffMins < 1) return "Just now"
+  if (diffMins < 60) return `${diffMins} min ago`
+  const diffHours = Math.floor(diffMins / 60)
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`
+  const diffDays = Math.floor(diffHours / 24)
+  if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`
+  return date.toLocaleDateString()
 }

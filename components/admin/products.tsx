@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import useSWR from "swr"
+import { usePagination } from "@/hooks/use-pagination"
+import { PaginationControls } from "@/components/pagination-controls"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
@@ -63,6 +65,13 @@ export function AdminProducts() {
   const [newImageUrl, setNewImageUrl] = useState("")
   const [showImport, setShowImport] = useState(false)
   const [importCsv, setImportCsv] = useState("")
+  const [importFile, setImportFile] = useState<File | null>(null)
+  const [importPreview, setImportPreview] = useState<Record<string, string>[]>([])
+  const [importErrors, setImportErrors] = useState<string[]>([])
+  const [isImporting, setIsImporting] = useState(false)
+  const [importProgress, setImportProgress] = useState({ done: 0, total: 0 })
+  const [importDone, setImportDone] = useState(false)
+  const csvFileRef = useRef<HTMLInputElement>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [isUploading, setIsUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -72,6 +81,8 @@ export function AdminProducts() {
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.category.toLowerCase().includes(searchQuery.toLowerCase())
   )
+
+  const { paginatedItems, currentPage, totalPages, totalItems, itemsPerPage, goToPage, changePerPage } = usePagination(filtered, { defaultPerPage: 20 })
 
   const openNew = () => {
     setEditingId(null)
@@ -212,6 +223,144 @@ export function AdminProducts() {
     }))
   }
 
+  const CSV_HEADERS = ["Name", "Price", "Original Price", "Category Slug", "Description", "Image URLs (pipe separated)", "Tags (comma separated)", "Is New (yes/no)", "Is On Offer (yes/no)", "Offer %", "In Stock (yes/no)", "Sizes (comma separated)", "Colors (comma separated)"]
+
+  const downloadTemplate = () => {
+    const sampleRows = [
+      ['"Classic Slim Fit Jeans"', '3500', '5000', 'jeans', '"Premium denim slim-fit jeans, comfortable stretch fabric."', '"https://example.com/img1.jpg|https://example.com/img2.jpg"', '"thrift, vintage, slim-fit"', 'yes', 'yes', '30', 'yes', '"28, 30, 32, 34"', '"Blue, Black"'],
+      ['"Denim Jacket Oversized"', '4200', '', 'jackets', '"Oversized denim jacket with button closure."', '"https://example.com/jacket1.jpg"', '"jacket, oversized"', 'yes', 'no', '', 'yes', '"S, M, L, XL"', '"Washed Blue"'],
+      ['"High Waist Dungarees"', '3800', '4500', 'dungarees', '"Vintage-style high waist dungarees."', '"https://example.com/dung1.jpg"', '"dungaree, vintage"', 'no', 'yes', '15', 'yes', '"S, M, L"', '""'],
+    ]
+    const csv = [CSV_HEADERS.join(","), ...sampleRows.map(r => r.join(","))].join("\n")
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = "kallitos-product-import-template.csv"
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const parseCSV = (text: string): Record<string, string>[] => {
+    const lines = text.split(/\r?\n/).filter(l => l.trim())
+    if (lines.length < 2) return []
+    const headers = parseCSVLine(lines[0])
+    return lines.slice(1).map(line => {
+      const values = parseCSVLine(line)
+      const row: Record<string, string> = {}
+      headers.forEach((h, i) => { row[h.trim()] = (values[i] || "").trim() })
+      return row
+    })
+  }
+
+  const parseCSVLine = (line: string): string[] => {
+    const result: string[] = []
+    let current = ""
+    let inQuotes = false
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i]
+      if (ch === '"') {
+        if (inQuotes && line[i + 1] === '"') { current += '"'; i++ }
+        else inQuotes = !inQuotes
+      } else if (ch === "," && !inQuotes) {
+        result.push(current)
+        current = ""
+      } else {
+        current += ch
+      }
+    }
+    result.push(current)
+    return result
+  }
+
+  const handleCSVFileSelect = (file: File | null) => {
+    if (!file) return
+    setImportFile(file)
+    setImportErrors([])
+    setImportDone(false)
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const text = e.target?.result as string
+      setImportCsv(text)
+      const rows = parseCSV(text)
+      // Validate
+      const errors: string[] = []
+      rows.forEach((row, i) => {
+        if (!row["Name"]) errors.push(`Row ${i + 2}: Missing product name`)
+        if (!row["Price"] || isNaN(Number(row["Price"]))) errors.push(`Row ${i + 2}: Invalid or missing price`)
+        if (!row["Category Slug"]) errors.push(`Row ${i + 2}: Missing category slug`)
+      })
+      setImportErrors(errors)
+      setImportPreview(rows)
+    }
+    reader.readAsText(file)
+  }
+
+  const handleCSVPaste = (text: string) => {
+    setImportCsv(text)
+    setImportFile(null)
+    setImportErrors([])
+    setImportDone(false)
+    const rows = parseCSV(text)
+    const errors: string[] = []
+    rows.forEach((row, i) => {
+      if (!row["Name"]) errors.push(`Row ${i + 2}: Missing product name`)
+      if (!row["Price"] || isNaN(Number(row["Price"]))) errors.push(`Row ${i + 2}: Invalid or missing price`)
+      if (!row["Category Slug"]) errors.push(`Row ${i + 2}: Missing category slug`)
+    })
+    setImportErrors(errors)
+    setImportPreview(rows)
+  }
+
+  const handleBulkImport = async () => {
+    if (importPreview.length === 0 || importErrors.length > 0) return
+    setIsImporting(true)
+    setImportProgress({ done: 0, total: importPreview.length })
+
+    let successCount = 0
+    for (const row of importPreview) {
+      const slug = row["Name"].toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
+      const body = {
+        name: row["Name"],
+        slug,
+        price: parseFloat(row["Price"]) || 0,
+        originalPrice: row["Original Price"] ? parseFloat(row["Original Price"]) : null,
+        categorySlug: row["Category Slug"],
+        description: row["Description"] || "",
+        images: (row["Image URLs (pipe separated)"] || "").split("|").map(s => s.trim()).filter(Boolean),
+        tags: (row["Tags (comma separated)"] || "").split(",").map(s => s.trim()).filter(Boolean),
+        isNew: (row["Is New (yes/no)"] || "").toLowerCase() === "yes",
+        isOnOffer: (row["Is On Offer (yes/no)"] || "").toLowerCase() === "yes",
+        offerPercentage: parseInt(row["Offer %"]) || 0,
+        inStock: (row["In Stock (yes/no)"] || "yes").toLowerCase() !== "no",
+        variations: [
+          ...(row["Sizes (comma separated)"] ? [{ type: "Size", options: row["Sizes (comma separated)"].split(",").map(s => s.trim()).filter(Boolean) }] : []),
+          ...(row["Colors (comma separated)"] ? [{ type: "Color", options: row["Colors (comma separated)"].split(",").map(s => s.trim()).filter(Boolean) }] : []),
+        ].filter(v => v.options.length > 0),
+      }
+
+      try {
+        const res = await fetch("/api/admin/products", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+        if (res.ok) successCount++
+      } catch { /* continue */ }
+      setImportProgress(prev => ({ ...prev, done: prev.done + 1 }))
+    }
+
+    setIsImporting(false)
+    setImportDone(true)
+    mutateProducts()
+  }
+
+  const resetImport = () => {
+    setShowImport(false)
+    setImportCsv("")
+    setImportFile(null)
+    setImportPreview([])
+    setImportErrors([])
+    setImportDone(false)
+    setImportProgress({ done: 0, total: 0 })
+  }
+
   const handleExport = () => {
     const headers = "Name,Price,Original Price,Category,Description,Images,Tags,Is New,Is On Offer,Offer %,In Stock"
     const rows = products.map((p) =>
@@ -239,13 +388,6 @@ export function AdminProducts() {
     URL.revokeObjectURL(url)
   }
 
-  const handleImport = () => {
-    if (!importCsv.trim()) return
-    // Import still works client-side for quick bulk operations
-    setImportCsv("")
-    setShowImport(false)
-  }
-
   const handleBulkDelete = async () => {
     for (const id of selectedIds) {
       await fetch(`/api/admin/products?id=${id}`, { method: "DELETE" })
@@ -264,8 +406,10 @@ export function AdminProducts() {
   }
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === filtered.length) setSelectedIds(new Set())
-    else setSelectedIds(new Set(filtered.map((p) => p.id)))
+    const pageIds = paginatedItems.map((p) => p.id)
+    const allSelected = pageIds.every((id) => selectedIds.has(id))
+    if (allSelected) setSelectedIds(new Set())
+    else setSelectedIds(new Set([...selectedIds, ...pageIds]))
   }
 
   return (
@@ -324,7 +468,7 @@ export function AdminProducts() {
               <thead>
                 <tr className="bg-secondary">
                   <th className="w-10 px-4 py-3">
-                    <input type="checkbox" checked={selectedIds.size === filtered.length && filtered.length > 0} onChange={toggleSelectAll} className="rounded-sm" />
+                    <input type="checkbox" checked={paginatedItems.length > 0 && paginatedItems.every((p) => selectedIds.has(p.id))} onChange={toggleSelectAll} className="rounded-sm" />
                   </th>
                   <th className="text-left px-4 py-3 font-medium">Product</th>
                   <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">Category</th>
@@ -334,7 +478,7 @@ export function AdminProducts() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filtered.map((product) => (
+                {paginatedItems.map((product) => (
                   <tr key={product.id} className="hover:bg-secondary/50 transition-colors">
                     <td className="w-10 px-4 py-3">
                       <input type="checkbox" checked={selectedIds.has(product.id)} onChange={() => toggleSelect(product.id)} className="rounded-sm" />
@@ -400,6 +544,17 @@ export function AdminProducts() {
             </table>
           </div>
         </div>
+
+        {/* Pagination */}
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+          onPageChange={goToPage}
+          onItemsPerPageChange={changePerPage}
+          perPageOptions={[10, 20, 50, 100]}
+        />
       </div>
 
       {/* Add/Edit Modal */}
@@ -586,36 +741,167 @@ export function AdminProducts() {
       </Dialog>
 
       {/* Import Modal */}
-      <Dialog open={showImport} onOpenChange={setShowImport}>
-        <DialogContent className="max-w-xl bg-background text-foreground">
+      <Dialog open={showImport} onOpenChange={(open) => { if (!open) resetImport(); else setShowImport(true) }}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-background text-foreground">
           <DialogHeader>
-            <DialogTitle className="font-serif">Bulk Import Products</DialogTitle>
+            <DialogTitle className="font-serif">Import Products</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 mt-4">
-            <div className="border border-border rounded-sm p-4 bg-secondary/50">
-              <h4 className="text-sm font-semibold mb-2">CSV Format</h4>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Paste CSV data with columns: Name, Price, Original Price, Category, Description, Images (pipe-separated), Tags (comma-separated), Is New (yes/no), Is On Offer (yes/no), Offer %, In Stock (yes/no)
+
+          {importDone ? (
+            <div className="text-center py-10">
+              <div className="w-14 h-14 bg-foreground/10 rounded-full mx-auto flex items-center justify-center mb-4">
+                <Download className="h-7 w-7 text-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold">Import Complete</h3>
+              <p className="text-sm text-muted-foreground mt-2">
+                Successfully imported {importProgress.done} of {importProgress.total} products.
               </p>
+              <Button onClick={resetImport} className="mt-6 bg-foreground text-background hover:bg-foreground/90">Done</Button>
             </div>
-            <div>
-              <Label className="text-sm font-medium mb-1.5 block">Paste CSV Data</Label>
-              <textarea
-                value={importCsv}
-                onChange={(e) => setImportCsv(e.target.value)}
-                rows={8}
-                className="w-full border border-border rounded-sm p-3 text-xs font-mono bg-background text-foreground resize-none outline-none focus:ring-1 focus:ring-ring"
-                placeholder={'Name,Price,Original Price,Category,Description,Images,Tags,Is New,Is On Offer,Offer %,In Stock'}
-              />
+          ) : (
+            <div className="space-y-5 mt-2">
+              {/* Step 1: Download Template */}
+              <div className="border border-border rounded-sm p-4 bg-secondary/30">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h4 className="text-sm font-semibold flex items-center gap-2">
+                      <span className="w-5 h-5 bg-foreground text-background rounded-full text-[10px] flex items-center justify-center font-bold">1</span>
+                      Download Template
+                    </h4>
+                    <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                      Download the CSV template, fill in your products, then upload it back. The template includes 3 sample rows showing the correct format.
+                    </p>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={downloadTemplate} className="bg-transparent flex-shrink-0">
+                    <Download className="h-3.5 w-3.5 mr-1.5" />
+                    Template
+                  </Button>
+                </div>
+                <div className="mt-3 text-[10px] text-muted-foreground font-mono bg-background rounded-sm p-2.5 overflow-x-auto whitespace-nowrap">
+                  {CSV_HEADERS.join(" | ")}
+                </div>
+              </div>
+
+              {/* Step 2: Upload or Paste */}
+              <div>
+                <h4 className="text-sm font-semibold flex items-center gap-2 mb-3">
+                  <span className="w-5 h-5 bg-foreground text-background rounded-full text-[10px] flex items-center justify-center font-bold">2</span>
+                  Upload CSV File
+                </h4>
+                <div
+                  onClick={() => csvFileRef.current?.click()}
+                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation() }}
+                  onDrop={(e) => { e.preventDefault(); e.stopPropagation(); handleCSVFileSelect(e.dataTransfer.files[0] || null) }}
+                  className="border-2 border-dashed border-border rounded-sm p-6 text-center cursor-pointer hover:border-foreground/40 transition-colors"
+                >
+                  <FileUp className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                  <p className="text-sm font-medium">{importFile ? importFile.name : "Click or drag CSV file here"}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Supports .csv files</p>
+                </div>
+                <input ref={csvFileRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => handleCSVFileSelect(e.target.files?.[0] || null)} />
+
+                <div className="flex items-center gap-3 my-4">
+                  <div className="flex-1 h-px bg-border" />
+                  <span className="text-xs text-muted-foreground font-medium">OR</span>
+                  <div className="flex-1 h-px bg-border" />
+                </div>
+
+                <Label className="text-sm font-medium mb-1.5 block">Paste CSV Data</Label>
+                <textarea
+                  value={importCsv}
+                  onChange={(e) => handleCSVPaste(e.target.value)}
+                  rows={5}
+                  className="w-full border border-border rounded-sm p-3 text-xs font-mono bg-background text-foreground resize-none outline-none focus:ring-1 focus:ring-ring"
+                  placeholder="Paste your CSV data here..."
+                />
+              </div>
+
+              {/* Step 3: Preview & Validation */}
+              {importPreview.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold flex items-center gap-2 mb-3">
+                    <span className="w-5 h-5 bg-foreground text-background rounded-full text-[10px] flex items-center justify-center font-bold">3</span>
+                    Preview ({importPreview.length} products)
+                  </h4>
+
+                  {importErrors.length > 0 && (
+                    <div className="mb-3 border border-destructive/30 rounded-sm bg-destructive/5 p-3">
+                      <p className="text-xs font-semibold text-destructive mb-1">Validation Errors ({importErrors.length})</p>
+                      <ul className="text-xs text-destructive/80 space-y-0.5 max-h-24 overflow-y-auto">
+                        {importErrors.map((err, i) => <li key={i}>{err}</li>)}
+                      </ul>
+                    </div>
+                  )}
+
+                  <div className="border border-border rounded-sm overflow-hidden">
+                    <div className="overflow-x-auto max-h-52">
+                      <table className="w-full text-[11px]">
+                        <thead>
+                          <tr className="bg-secondary">
+                            <th className="px-2 py-2 text-left font-medium">#</th>
+                            <th className="px-2 py-2 text-left font-medium">Name</th>
+                            <th className="px-2 py-2 text-left font-medium">Price</th>
+                            <th className="px-2 py-2 text-left font-medium">Category</th>
+                            <th className="px-2 py-2 text-left font-medium">Images</th>
+                            <th className="px-2 py-2 text-left font-medium">Tags</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                          {importPreview.slice(0, 10).map((row, i) => (
+                            <tr key={i} className="hover:bg-secondary/30">
+                              <td className="px-2 py-1.5 text-muted-foreground">{i + 1}</td>
+                              <td className="px-2 py-1.5 font-medium max-w-[180px] truncate">{row["Name"]}</td>
+                              <td className="px-2 py-1.5">{row["Price"] ? `KSh ${Number(row["Price"]).toLocaleString()}` : "-"}</td>
+                              <td className="px-2 py-1.5">{row["Category Slug"] || "-"}</td>
+                              <td className="px-2 py-1.5">{(row["Image URLs (pipe separated)"] || "").split("|").filter(Boolean).length} img</td>
+                              <td className="px-2 py-1.5 max-w-[120px] truncate">{row["Tags (comma separated)"] || "-"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {importPreview.length > 10 && (
+                      <div className="bg-secondary/50 px-3 py-1.5 text-[11px] text-muted-foreground text-center">
+                        ...and {importPreview.length - 10} more
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Import progress */}
+              {isImporting && (
+                <div className="border border-border rounded-sm p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm font-medium">Importing... {importProgress.done}/{importProgress.total}</span>
+                  </div>
+                  <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-foreground rounded-full transition-all duration-300"
+                      style={{ width: `${importProgress.total > 0 ? (importProgress.done / importProgress.total) * 100 : 0}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex justify-end gap-3 pt-4 border-t border-border">
+                <Button variant="outline" onClick={resetImport} className="bg-transparent">Cancel</Button>
+                <Button
+                  onClick={handleBulkImport}
+                  disabled={importPreview.length === 0 || importErrors.length > 0 || isImporting}
+                  className="bg-foreground text-background hover:bg-foreground/90"
+                >
+                  {isImporting ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Importing...</>
+                  ) : (
+                    <><FileUp className="h-4 w-4 mr-2" />Import {importPreview.length} Products</>
+                  )}
+                </Button>
+              </div>
             </div>
-            <div className="flex justify-end gap-3 pt-4 border-t border-border">
-              <Button variant="outline" onClick={() => setShowImport(false)} className="bg-transparent">Cancel</Button>
-              <Button onClick={handleImport} disabled={!importCsv.trim()} className="bg-foreground text-background hover:bg-foreground/90">
-                <FileUp className="h-4 w-4 mr-2" />
-                Import Products
-              </Button>
-            </div>
-          </div>
+          )}
         </DialogContent>
       </Dialog>
     </AdminShell>
