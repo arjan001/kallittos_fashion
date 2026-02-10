@@ -5,9 +5,17 @@ import { Footer } from "@/components/store/footer"
 import { TrackOrderForm } from "@/components/store/track-order-form"
 
 export const metadata: Metadata = {
-  title: "Track My Order",
+  title: "Track My Order | Kallittos Fashions",
   description:
-    "Track your Kallittos Fashions order in real time. Enter your order number or phone number to see the status of your delivery.",
+    "Track your Kallittos Fashions order in real time. Enter your order number or phone number to see the status of your denim delivery across Kenya.",
+  keywords: [
+    "track order Kallittos", "kallittosfashions order tracking", "track jeans delivery Kenya",
+    "Kallittos Fashions order status", "denim delivery Nairobi", "check order Kenya",
+  ],
+  openGraph: {
+    title: "Track My Order | Kallittos Fashions",
+    description: "Track your thrift denim order in real time. Enter your order number or phone to check delivery status.",
+  },
 }
 
 export default function TrackOrderPage() {

@@ -16,7 +16,7 @@ const playfair = Playfair_Display({
   variable: "--font-playfair",
 })
 
-const siteUrl = "https://kallittofashions.com"
+const siteUrl = "https://kallittosfashions.com"
 
 export const metadata: Metadata = {
   title: {
@@ -26,26 +26,36 @@ export const metadata: Metadata = {
   description:
     "Kallittos Fashions \u2013 Shop curated thrift & brand-new mom jeans, wide-leg denim, and vintage jackets. Style meets sustainability. Premium denim delivered across Kenya. Order via M-PESA, WhatsApp, or online.",
   keywords: [
-    "Thrift denim jackets", "Vintage Levi's jeans", "Women's thrift jeans Nairobi",
-    "High-waisted denim pants", "Affordable denim jackets", "Second-hand denim store",
-    "Distressed denim jeans", "Mom jeans thrifted", "Wide-leg denim trends",
-    "Oversized denim jackets", "Premium thrift denim", "Quality jeans for women",
-    "Denim dungarees", "Straight-leg vintage jeans", "Ripped denim collection",
-    "Sustainable fashion Kenya", "Y2K denim style", "Streetwear denim outfits",
-    "Retro denim aesthetic", "Slow fashion thrift", "Minimalist denim wardrobe",
-    "90s vintage denim", "Baggy jeans trend 2026", "Curated thrift shop",
-    "Eco-friendly denim fashion", "Edgy denim looks", "Classiccore denim basics",
-    "Cargo denim pants", "Patchwork denim jackets", "Raw hem denim style",
-    "Best thrift stores in Nairobi", "Online denim shop Kenya", "Thrift clothing CBD Nairobi",
-    "Kallitto Fashions reviews", "Affordable fashion Nairobi", "Buy jeans online Kenya",
-    "Thrifted denim bundles", "Fashionable denim for less", "Dynamic Mall thrift shops",
-    "Kenya denim fashion brand", "Aesthetic denim outfits", "Pre-loved denim jackets",
-    "Stylish jeans for ladies", "Gikomba premium thrift", "Affordable street fashion",
-    "Trendy denim skirts", "Denim waistcoat vintage", "Dark wash denim jeans",
-    "Light wash mom jeans", "Kallitto Fashions denim drop",
+    // Brand names (exact match searches)
+    "kallittosfashions", "kallittos fashions", "kallittos", "kallitto fashions",
+    "Kallittos Fashions Nairobi", "Kallittos denim", "Kallittos jeans",
+    // Kenya best designs
+    "Kenya best denim designs", "best jeans in Kenya", "best thrift jeans Kenya",
+    "Kenya fashion online", "best denim store Nairobi", "top jeans shop Kenya",
+    // Thrift jeans & denim searches
+    "thrift jeans Kenya", "thrift jeans Nairobi", "buy thrift jeans online Kenya",
+    "second hand jeans Nairobi", "mtumba jeans Kenya", "mtumba denim Nairobi",
+    "affordable jeans Kenya", "cheap jeans Nairobi", "quality thrift denim",
+    // Product types
+    "mom jeans Kenya", "skinny jeans Nairobi", "boyfriend jeans Kenya",
+    "high waisted jeans Kenya", "ripped jeans Nairobi", "distressed denim Kenya",
+    "straight leg jeans Kenya", "wide leg denim Kenya", "baggy jeans Kenya",
+    "denim shorts Kenya", "denim jackets Kenya", "denim dungarees Nairobi",
+    // Fashion styles
+    "Vintage Levi's jeans", "Y2K denim style", "90s vintage denim",
+    "streetwear denim Kenya", "sustainable fashion Kenya", "eco-friendly fashion Nairobi",
+    "curated thrift shop Kenya", "premium thrift denim", "pre-loved denim",
+    // Location specific
+    "Dynamic Mall thrift shops", "Nairobi CBD fashion", "thrift stores Nairobi CBD",
+    "Gikomba premium thrift", "online denim shop Kenya", "buy jeans online Kenya",
+    "denim delivery Nairobi", "M-PESA denim shop", "WhatsApp order jeans Kenya",
+    // Generic denim
+    "women jeans Kenya", "ladies jeans Nairobi", "plus size jeans Kenya",
+    "denim collection Kenya", "new denim arrivals Kenya", "trendy jeans 2026",
+    "dark wash denim", "light wash mom jeans", "raw hem jeans",
   ],
   authors: [
-    { name: "Kallittos Fashions", url: "https://kallittofashions.com" },
+    { name: "Kallittos Fashions", url: "https://kallittosfashions.com" },
     { name: "OnePlusAfrica Tech Solutions", url: "https://oneplusafrica.com/" },
   ],
   creator: "OnePlusAfrica Tech Solutions",
@@ -114,7 +124,7 @@ export default function RootLayout({
               "@type": "ClothingStore",
               name: "Kallittos Fashions",
               description: "Curated thrift & brand-new mom jeans, wide-leg denim, and vintage jackets. Style meets sustainability in Nairobi, Kenya.",
-              url: "https://kallittofashions.com",
+              url: "https://kallittosfashions.com",
               telephone: "+254713809695",
               email: "info@kallitosfashion.com",
               address: {

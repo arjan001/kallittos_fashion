@@ -3,17 +3,19 @@ import { ShopPage } from "@/components/store/shop-page"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Shop All Denim",
+  title: "Shop Thrift Jeans & Denim | Kallittos Fashions Kenya",
   description:
-    "Browse Kallittos Fashions\u2019 full collection of curated thrift & brand-new mom jeans, wide-leg denim, vintage jackets, dungarees & more. Filter by category, size, and price. Sustainable fashion delivered across Kenya.",
+    "Browse Kallittos Fashions full collection of curated thrift & brand-new mom jeans, skinny jeans, boyfriend jeans, denim shorts, wide-leg denim & more. Best denim designs in Kenya. Filter by category, size, and price. Delivered across Nairobi & Kenya.",
   keywords: [
-    "Thrift denim jackets", "Mom jeans thrifted", "Wide-leg denim trends", "Oversized denim jackets",
-    "Buy jeans online Kenya", "Online denim shop Kenya", "Affordable fashion Nairobi",
-    "Premium thrift denim", "Denim dungarees", "Baggy jeans trend 2026",
+    "kallittosfashions shop", "buy thrift jeans online Kenya", "shop denim Nairobi",
+    "mom jeans Kenya", "skinny jeans Nairobi", "boyfriend jeans Kenya", "ripped jeans Kenya",
+    "denim shorts Kenya", "best jeans Kenya", "affordable jeans Nairobi",
+    "mtumba jeans online", "thrift denim collection", "premium thrift jeans",
+    "women jeans Kenya", "plus size jeans Nairobi", "Kenya denim online shop",
   ],
   openGraph: {
-    title: "Shop All Denim | Kallittos Fashions",
-    description: "Curated thrift & brand-new denim. Mom jeans, vintage jackets, wide-leg denim & more. Style meets sustainability.",
+    title: "Shop Thrift Jeans & Denim | Kallittos Fashions Kenya",
+    description: "Best curated thrift & new denim in Kenya. Mom jeans, skinny, boyfriend, shorts & more. Delivered across Nairobi & Kenya.",
   },
 }
 

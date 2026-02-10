@@ -26,15 +26,13 @@ function formatPrice(price: number): string {
 
 interface ProductPageData {
   product: Product
-  similar: Product[]
-  youMayLike: Product[]
+  related: Product[]
 }
 
 export function ProductDetailPage({ slug }: { slug: string }) {
   const { data, error, isLoading } = useSWR<ProductPageData>(`/api/products/${slug}`, fetcher)
   const product = data?.product || null
-  const similar = data?.similar || []
-  const youMayLike = data?.youMayLike || []
+  const related = data?.related || []
   const { addItem } = useCart()
   const { toggleItem, isInWishlist } = useWishlist()
   const wishlisted = product ? isInWishlist(product.id) : false
@@ -81,12 +79,14 @@ export function ProductDetailPage({ slug }: { slug: string }) {
     addItem(product, quantity, Object.keys(selectedVariations).length > 0 ? selectedVariations : undefined)
   }
 
+  const productUrl = typeof window !== "undefined" ? `${window.location.origin}/product/${product.slug}` : ""
+  const productImage = product.images[0] || ""
   const whatsappMessage = encodeURIComponent(
     `Hi! I'd like to order:\n\n*${product.name}*\nPrice: ${formatPrice(product.price)}\nQuantity: ${quantity}${
       Object.entries(selectedVariations).length > 0
         ? `\n${Object.entries(selectedVariations).map(([k, v]) => `${k}: ${v}`).join("\n")}`
         : ""
-    }\n\nPlease confirm availability.`
+    }\n\nProduct: ${productUrl}\nImage: ${productImage}\n\nPlease confirm availability.`
   )
 
   return (
@@ -328,24 +328,12 @@ export function ProductDetailPage({ slug }: { slug: string }) {
             </Tabs>
           </div>
 
-          {/* Similar Products */}
-          {similar.length > 0 && (
-            <div className="mt-16">
-              <h2 className="text-2xl font-serif font-bold mb-6">Similar Products</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
-                {similar.map((p) => (
-                  <ProductCard key={p.id} product={p} />
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* You May Also Like */}
-          {youMayLike.length > 0 && (
+          {related.length > 0 && (
             <div className="mt-16 mb-8">
               <h2 className="text-2xl font-serif font-bold mb-6">You May Also Like</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
-                {youMayLike.map((p) => (
+                {related.map((p) => (
                   <ProductCard key={p.id} product={p} />
                 ))}
               </div>
