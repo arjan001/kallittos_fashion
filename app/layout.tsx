@@ -2,6 +2,7 @@ import React from "react"
 import type { Metadata, Viewport } from "next"
 import { Inter, Playfair_Display } from "next/font/google"
 import { CartProvider } from "@/lib/cart-context"
+import { WishlistProvider } from "@/lib/wishlist-context"
 import "./globals.css"
 
 const inter = Inter({
@@ -87,6 +88,7 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
+        <meta name="google-site-verification" content="FY2n9Zc_Z1exsOdQJ4xsDTMW_P-UBehhQPI_Ana4nCg" />
         <meta name="format-detection" content="telephone=no" />
         <link rel="author" href="https://oneplusafrica.com/" />
         <script
@@ -134,7 +136,7 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans antialiased">
-        <CartProvider>{children}</CartProvider>
+        <WishlistProvider><CartProvider>{children}</CartProvider></WishlistProvider>
       </body>
     </html>
   )

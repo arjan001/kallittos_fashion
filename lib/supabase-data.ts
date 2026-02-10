@@ -232,6 +232,9 @@ export async function createOrder(order: {
   total: number
   notes?: string
   orderedVia: string
+  paymentMethod?: string
+  mpesaCode?: string
+  mpesaPhone?: string
   items: {
     productId: string
     productName: string
@@ -261,7 +264,10 @@ export async function createOrder(order: {
       total: order.total,
       notes: order.notes || null,
       ordered_via: order.orderedVia,
-      status: "pending",
+      payment_method: order.paymentMethod || "cod",
+      mpesa_code: order.mpesaCode || null,
+      mpesa_phone: order.mpesaPhone || null,
+      status: order.paymentMethod === "mpesa" ? "pending" : "pending",
     })
     .select()
     .single()

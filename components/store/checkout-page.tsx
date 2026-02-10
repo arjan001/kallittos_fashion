@@ -7,6 +7,7 @@ import { ChevronRight, Minus, Plus, X, Truck, Loader2, CheckCircle } from "lucid
 import { TopBar } from "./top-bar"
 import { Navbar } from "./navbar"
 import { Footer } from "./footer"
+import { MpesaPaymentModal } from "./mpesa-payment-modal"
 import { useCart } from "@/lib/cart-context"
 import { formatPrice } from "@/lib/format"
 import type { DeliveryLocation } from "@/lib/types"
@@ -21,7 +22,8 @@ export function CheckoutPage() {
   const [deliveryLocation, setDeliveryLocation] = useState("")
   const [deliveryLocations, setDeliveryLocations] = useState<DeliveryLocation[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [orderResult, setOrderResult] = useState<{ orderNumber: string } | null>(null)
+  const [orderResult, setOrderResult] = useState<{ orderNumber: string; paymentMethod?: string } | null>(null)
+  const [showMpesa, setShowMpesa] = useState(false)
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -127,7 +129,40 @@ export function CheckoutPage() {
     window.open(`https://wa.me/254713809695?text=${message}`, "_blank")
     clearCart()
     setIsSubmitting(false)
-    setOrderResult({ orderNumber: "WhatsApp" })
+    setOrderResult({ orderNumber: "WhatsApp", paymentMethod: "whatsapp" })
+  }
+
+  const handleMpesaPayment = () => {
+    if (!isFormValid) return
+    setShowMpesa(true)
+  }
+
+  const handleMpesaConfirmed = async (mpesaCode: string, mpesaPhone: string) => {
+    setShowMpesa(false)
+    setIsSubmitting(true)
+    try {
+      const payload = {
+        ...buildOrderPayload("mpesa"),
+        paymentMethod: "mpesa",
+        mpesaCode,
+        mpesaPhone: mpesaPhone || formData.phone,
+        status: "pending",
+      }
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setOrderResult({ orderNumber: data.orderNumber, paymentMethod: "mpesa" })
+        clearCart()
+      }
+    } catch (err) {
+      console.error("M-Pesa order failed:", err)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   // Order confirmation screen
@@ -140,7 +175,19 @@ export function CheckoutPage() {
           <div className="text-center max-w-md mx-auto px-4">
             <CheckCircle className="h-16 w-16 mx-auto text-foreground mb-4" />
             <h1 className="text-2xl font-serif font-bold">Order Placed!</h1>
-            {orderResult.orderNumber !== "WhatsApp" ? (
+            {orderResult.paymentMethod === "mpesa" ? (
+              <>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Your order <span className="font-semibold text-foreground">{orderResult.orderNumber}</span> has been received.
+                </p>
+                <div className="mt-3 bg-[#4CAF50]/10 border border-[#4CAF50]/20 p-4 rounded-sm">
+                  <p className="text-sm font-medium text-[#4CAF50]">Paid via M-PESA</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Your payment is being verified. We will confirm and arrange delivery shortly.
+                  </p>
+                </div>
+              </>
+            ) : orderResult.orderNumber !== "WhatsApp" ? (
               <>
                 <p className="text-sm text-muted-foreground mt-2">
                   Your order <span className="font-semibold text-foreground">{orderResult.orderNumber}</span> has been received.
@@ -370,7 +417,29 @@ export function CheckoutPage() {
                 </div>
 
                 <div className="mt-6 space-y-3">
-                  {/* Normal Checkout */}
+                  {/* M-PESA Payment */}
+                  <Button
+                    onClick={handleMpesaPayment}
+                    disabled={!isFormValid || isSubmitting}
+                    className="w-full h-12 text-sm font-semibold disabled:opacity-40 bg-[#4CAF50] text-white hover:bg-[#43A047]"
+                  >
+                    <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M17 2H7c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 18H7V4h10v16z" />
+                      <path d="M11 17.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5-.67 1.5-1.5 1.5-1.5-.67-1.5-1.5z" />
+                    </svg>
+                    Pay with M-PESA
+                  </Button>
+
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-border" />
+                    </div>
+                    <div className="relative flex justify-center text-xs">
+                      <span className="bg-secondary/50 px-3 text-muted-foreground">or</span>
+                    </div>
+                  </div>
+
+                  {/* Normal Checkout (Pay on Delivery) */}
                   <Button
                     onClick={handleNormalCheckout}
                     disabled={!isFormValid || isSubmitting}
@@ -382,18 +451,9 @@ export function CheckoutPage() {
                         Placing Order...
                       </>
                     ) : (
-                      "Place Order"
+                      "Pay on Delivery"
                     )}
                   </Button>
-
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-border" />
-                    </div>
-                    <div className="relative flex justify-center text-xs">
-                      <span className="bg-secondary/50 px-3 text-muted-foreground">or</span>
-                    </div>
-                  </div>
 
                   {/* WhatsApp Checkout */}
                   <Button
@@ -418,6 +478,13 @@ export function CheckoutPage() {
         </div>
       </main>
       <Footer />
+
+      <MpesaPaymentModal
+        isOpen={showMpesa}
+        onClose={() => setShowMpesa(false)}
+        total={freeShipping ? totalPrice : grandTotal}
+        onPaymentConfirmed={handleMpesaConfirmed}
+      />
     </div>
   )
 }

@@ -1,16 +1,17 @@
 import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { NextResponse } from "next/server"
 
 export async function POST(request: Request) {
+  // Verify requesting user is super_admin
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  // Check requesting user is super_admin
   const { data: currentUser } = await supabase
     .from("admin_users")
     .select("role")
-    .eq("id", user.id)
+    .eq("email", user.email)
     .single()
 
   if (currentUser?.role !== "super_admin") {
@@ -27,22 +28,48 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 })
   }
 
-  // Use Supabase Auth to create the user
-  // We use the admin client approach by signing up with the service role
-  const { error: signUpError } = await supabase.auth.signUp({
+  const adminClient = createAdminClient()
+
+  // Check if user already exists in auth
+  const { data: existingUsers } = await adminClient.auth.admin.listUsers()
+  const existingAuth = existingUsers?.users?.find((u) => u.email === email)
+
+  if (existingAuth) {
+    return NextResponse.json({ error: "A user with this email already exists" }, { status: 400 })
+  }
+
+  // Create auth user with service role (doesn't affect admin's session)
+  const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
     email,
     password,
-    options: {
-      emailRedirectTo: `${request.headers.get("origin") || ""}/admin`,
-      data: {
-        display_name: displayName,
-        role,
-      },
+    email_confirm: true,
+    user_metadata: {
+      display_name: displayName,
+      role,
     },
   })
 
-  if (signUpError) {
-    return NextResponse.json({ error: signUpError.message }, { status: 400 })
+  if (createError) {
+    return NextResponse.json({ error: createError.message }, { status: 400 })
+  }
+
+  // The trigger creates admin_users row, but update to ensure correct role
+  // Use email match since the trigger generates its own UUID for admin_users.id
+  if (newUser?.user) {
+    // Small delay to let trigger complete
+    await new Promise((r) => setTimeout(r, 500))
+
+    const { error: updateError } = await adminClient
+      .from("admin_users")
+      .update({ role, display_name: displayName, is_active: true })
+      .eq("email", email)
+
+    // If trigger didn't fire or row doesn't exist, insert directly
+    if (updateError) {
+      await adminClient
+        .from("admin_users")
+        .insert({ id: crypto.randomUUID(), email, display_name: displayName, role, is_active: true })
+    }
   }
 
   return NextResponse.json({ success: true })

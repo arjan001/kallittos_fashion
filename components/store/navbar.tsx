@@ -6,6 +6,7 @@ import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Search, ShoppingBag, Heart, Menu, X, ChevronDown, Phone } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
+import { useWishlist } from "@/lib/wishlist-context"
 import type { Product, Category } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
@@ -21,6 +22,7 @@ function formatPrice(price: number): string {
 export function Navbar() {
   const router = useRouter()
   const { totalItems, setIsCartOpen } = useCart()
+  const { totalItems: wishlistCount } = useWishlist()
   const { data: categories = [] } = useSWR<Category[]>("/api/categories", fetcher)
   const { data: allProducts = [] } = useSWR<Product[]>("/api/products", fetcher)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -171,7 +173,10 @@ export function Navbar() {
             <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSearchOpen(!searchOpen)}>
               <Search className="h-5 w-5" /><span className="sr-only">Search</span>
             </Button>
-            <Link href="/wishlist" className="hidden lg:flex"><Button variant="ghost" size="icon"><Heart className="h-5 w-5" /><span className="sr-only">Wishlist</span></Button></Link>
+            <Link href="/wishlist" className="hidden lg:flex relative">
+              <Button variant="ghost" size="icon"><Heart className="h-5 w-5" /><span className="sr-only">Wishlist</span></Button>
+              {wishlistCount > 0 && <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold min-w-[18px] h-[18px]">{wishlistCount}</span>}
+            </Link>
             <button type="button" className="relative p-2" onClick={() => setIsCartOpen(true)}>
               <ShoppingBag className="h-5 w-5" />
               {totalItems > 0 && <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center rounded-full bg-foreground text-background text-[10px] font-bold min-w-[18px] h-[18px]">{totalItems}</span>}

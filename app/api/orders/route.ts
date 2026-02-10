@@ -21,6 +21,9 @@ export async function POST(request: Request) {
       total: body.total,
       notes: body.notes,
       orderedVia: body.orderedVia || "website",
+      paymentMethod: body.paymentMethod || "cod",
+      mpesaCode: body.mpesaCode,
+      mpesaPhone: body.mpesaPhone,
       items: body.items,
     })
 
