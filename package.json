@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "preinstall": "node -e \"const fs=require('fs');const p='node_modules';try{if(fs.existsSync(p)&&!fs.statSync(p).isDirectory()){fs.unlinkSync(p);console.log('Removed node_modules file')}}catch(e){}\"",
     "dev": "next dev --turbo",
     "build": "next build",
     "start": "next start",
