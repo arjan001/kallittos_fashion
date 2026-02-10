@@ -9,7 +9,7 @@ export function Footer() {
           {/* Brand + Social */}
           <div>
             <Link href="/" className="font-serif text-2xl font-bold tracking-tight">
-              Kallitos Fashion
+              Kallittos Fashions
             </Link>
             <p className="text-background/60 text-sm mt-4 leading-relaxed max-w-xs">
               Curated thrift and brand-new denim pieces. From straight legs to mom jeans, dungarees to jackets -- your one-stop denim destination in Nairobi.
@@ -186,16 +186,16 @@ export function Footer() {
         <div className="mt-12 pt-8 border-t border-background/10">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-background/40 text-xs">
-              {"© 2026 Kallitos Fashion. All rights reserved."}
+              {"© 2026 Kallittos Fashions. All rights reserved."}
             </p>
             <div className="flex items-center gap-6">
-              <Link href="#" className="text-background/40 text-xs hover:text-background transition-colors">
+              <Link href="/privacy-policy" className="text-background/40 text-xs hover:text-background transition-colors">
                 Privacy Policy
               </Link>
-              <Link href="#" className="text-background/40 text-xs hover:text-background transition-colors">
+              <Link href="/terms-of-service" className="text-background/40 text-xs hover:text-background transition-colors">
                 Terms of Service
               </Link>
-              <Link href="#" className="text-background/40 text-xs hover:text-background transition-colors">
+              <Link href="/refund-policy" className="text-background/40 text-xs hover:text-background transition-colors">
                 Refund Policy
               </Link>
             </div>
