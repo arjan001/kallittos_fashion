@@ -9,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/admin/", "/api/", "/auth/"],
       },
     ],
-    sitemap: "https://kallittosfashions.com/sitemap.xml",
+    sitemap: "https://kallittofashions.com/sitemap.xml",
   }
 }

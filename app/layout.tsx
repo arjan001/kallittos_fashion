@@ -16,7 +16,7 @@ const playfair = Playfair_Display({
   variable: "--font-playfair",
 })
 
-const siteUrl = "https://kallittosfashions.com"
+const siteUrl = "https://kallittofashions.com"
 
 export const metadata: Metadata = {
   title: {
@@ -55,7 +55,7 @@ export const metadata: Metadata = {
     "dark wash denim", "light wash mom jeans", "raw hem jeans",
   ],
   authors: [
-    { name: "Kallittos Fashions", url: "https://kallittosfashions.com" },
+    { name: "Kallittos Fashions", url: "https://kallittofashions.com" },
     { name: "OnePlusAfrica Tech Solutions", url: "https://oneplusafrica.com/" },
   ],
   creator: "OnePlusAfrica Tech Solutions",
@@ -124,7 +124,7 @@ export default function RootLayout({
               "@type": "ClothingStore",
               name: "Kallittos Fashions",
               description: "Curated thrift & brand-new mom jeans, wide-leg denim, and vintage jackets. Style meets sustainability in Nairobi, Kenya.",
-              url: "https://kallittosfashions.com",
+              url: "https://kallittofashions.com",
               telephone: "+254713809695",
               email: "info@kallitosfashion.com",
               address: {
