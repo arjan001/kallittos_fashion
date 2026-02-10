@@ -4,6 +4,8 @@ import React from "react"
 
 import { useState } from "react"
 import { Shield, ShieldCheck, Eye, Pencil, UserX, MoreHorizontal, UserCircle, UserPlus, Loader2, AlertCircle, Mail } from "lucide-react"
+import { usePagination } from "@/hooks/use-pagination"
+import { PaginationControls } from "@/components/pagination-controls"
 import { AdminShell } from "./admin-shell"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -126,6 +128,9 @@ export function UsersManagement() {
   const activeUsers = users.filter((u) => u.is_active)
   const inactiveUsers = users.filter((u) => !u.is_active)
 
+  const { paginatedItems: paginatedActive, currentPage: activePage, totalPages: activeTotalPages, totalItems: activeTotalItems, itemsPerPage: activePerPage, goToPage: goToActivePage, changePerPage: changeActivePerPage } = usePagination(activeUsers, { defaultPerPage: 10 })
+  const { paginatedItems: paginatedInactive, currentPage: inactivePage, totalPages: inactiveTotalPages, totalItems: inactiveTotalItems, itemsPerPage: inactivePerPage, goToPage: goToInactivePage, changePerPage: changeInactivePerPage } = usePagination(inactiveUsers, { defaultPerPage: 10 })
+
   return (
     <AdminShell title="Users & Roles">
       <div className="space-y-8">
@@ -164,10 +169,10 @@ export function UsersManagement() {
               <div className="col-span-2">Last Login</div>
               <div className="col-span-2 text-right">Actions</div>
             </div>
-            {activeUsers.length === 0 ? (
+            {paginatedActive.length === 0 ? (
               <div className="p-8 text-center text-sm text-muted-foreground">No active users found</div>
             ) : (
-              activeUsers.map((u) => (
+              paginatedActive.map((u) => (
                 <div key={u.id} className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 items-center px-4 py-3 border-t border-border">
                   <div className="col-span-4 flex items-center gap-3">
                     <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
@@ -209,6 +214,15 @@ export function UsersManagement() {
               ))
             )}
           </div>
+          <PaginationControls
+            currentPage={activePage}
+            totalPages={activeTotalPages}
+            totalItems={activeTotalItems}
+            itemsPerPage={activePerPage}
+            onPageChange={goToActivePage}
+            onItemsPerPageChange={changeActivePerPage}
+            perPageOptions={[5, 10, 20]}
+          />
         </div>
 
         {/* Inactive Users */}
@@ -216,7 +230,7 @@ export function UsersManagement() {
           <div>
             <h3 className="text-sm font-semibold mb-3">Inactive Users ({inactiveUsers.length})</h3>
             <div className="border border-border rounded-sm overflow-hidden">
-              {inactiveUsers.map((u) => (
+              {paginatedInactive.map((u) => (
                 <div key={u.id} className="flex items-center justify-between px-4 py-3 border-t border-border first:border-t-0 opacity-60">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center"><UserCircle className="h-5 w-5 text-muted-foreground" /></div>
@@ -229,6 +243,15 @@ export function UsersManagement() {
                 </div>
               ))}
             </div>
+            <PaginationControls
+              currentPage={inactivePage}
+              totalPages={inactiveTotalPages}
+              totalItems={inactiveTotalItems}
+              itemsPerPage={inactivePerPage}
+              onPageChange={goToInactivePage}
+              onItemsPerPageChange={changeInactivePerPage}
+              perPageOptions={[5, 10, 20]}
+            />
           </div>
         )}
       </div>
