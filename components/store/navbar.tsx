@@ -106,7 +106,7 @@ export function Navbar() {
                 {categories.map((cat) => (
                   <Link key={cat.id} href={`/shop?category=${cat.slug}`} className="py-3 text-sm border-b border-border">{cat.name}</Link>
                 ))}
-                <Link href="/delivery" className="py-3 text-sm font-medium border-b border-border">Delivery Locations</Link>
+                <Link href="/track-order" className="py-3 text-sm font-medium border-b border-border">Track My Order</Link>
               </nav>
               <div className="px-6 py-4 mt-4 space-y-3">
                 <a href="https://www.instagram.com/kallittofashions/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">Instagram</a>
@@ -231,7 +231,7 @@ export function Navbar() {
               <Link href="/shop" className="text-sm font-medium hover:text-muted-foreground transition-colors">Shop</Link>
               <Link href="/shop?filter=new" className="text-sm font-medium hover:text-muted-foreground transition-colors">New Arrivals</Link>
               <Link href="/shop?filter=offers" className="text-sm font-medium hover:text-muted-foreground transition-colors">On Offer</Link>
-              <Link href="/delivery" className="text-sm font-medium hover:text-muted-foreground transition-colors">Delivery Locations</Link>
+              <Link href="/track-order" className="text-sm font-medium hover:text-muted-foreground transition-colors">Track My Order</Link>
             </nav>
             <a href="tel:+254713809695" className="flex items-center gap-2 text-sm font-medium"><Phone className="h-4 w-4" />0713 809 695</a>
           </div>

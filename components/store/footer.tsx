@@ -66,8 +66,11 @@ export function Footer() {
               <Link href="/shop?filter=offers" className="text-background/60 text-sm hover:text-background transition-colors">
                 On Offer
               </Link>
+              <Link href="/track-order" className="text-background/60 text-sm hover:text-background transition-colors">
+                Track My Order
+              </Link>
               <Link href="/delivery" className="text-background/60 text-sm hover:text-background transition-colors">
-                Delivery Info
+                Delivery Locations
               </Link>
               <Link href="/shop?category=skinny-jeans" className="text-background/60 text-sm hover:text-background transition-colors">
                 Skinny Jeans
