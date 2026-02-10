@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import { toast } from "sonner"
-import { Eye, Truck, CheckCircle, Clock, Package, XCircle, Search } from "lucide-react"
+import { Eye, Truck, CheckCircle, Clock, Package, XCircle, Search, Trash2, Loader2 } from "lucide-react"
 import { usePagination } from "@/hooks/use-pagination"
 import { PaginationControls } from "@/components/pagination-controls"
 import { AdminShell } from "./admin-shell"
@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Checkbox } from "@/components/ui/checkbox"
 import useSWR from "swr"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
@@ -50,6 +51,8 @@ export function AdminOrders() {
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [deleting, setDeleting] = useState(false)
 
   const filtered = orders.filter((o) => {
     const matchSearch = o.customer.toLowerCase().includes(search.toLowerCase()) || o.orderNo.toLowerCase().includes(search.toLowerCase())
@@ -60,6 +63,46 @@ export function AdminOrders() {
   const { paginatedItems, currentPage, totalPages, totalItems, itemsPerPage, goToPage, changePerPage, resetPage } = usePagination(filtered, { defaultPerPage: 15 })
 
   useEffect(() => { resetPage() }, [search, statusFilter])
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === paginatedItems.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(paginatedItems.map((o) => o.id)))
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return
+    const count = selectedIds.size
+    if (!confirm(`Permanently delete ${count} order${count !== 1 ? "s" : ""}? This cannot be undone.`)) return
+    setDeleting(true)
+    try {
+      const ids = Array.from(selectedIds).join(",")
+      const res = await fetch(`/api/admin/orders?ids=${ids}`, { method: "DELETE" })
+      if (res.ok) {
+        toast.success(`${count} order${count !== 1 ? "s" : ""} deleted`)
+        setSelectedIds(new Set())
+        mutate()
+      } else {
+        const data = await res.json()
+        toast.error(data.error || "Failed to delete orders")
+      }
+    } catch {
+      toast.error("Failed to delete orders")
+    } finally {
+      setDeleting(false)
+    }
+  }
 
  const updateStatus = async (orderId: string, newStatus: OrderStatus) => {
   const res = await fetch("/api/admin/orders", {
@@ -105,31 +148,58 @@ export function AdminOrders() {
           ))}
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search orders..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 h-10" />
+        {selectedIds.size > 0 ? (
+          <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 rounded-sm px-4 py-2.5">
+            <span className="text-sm font-medium">{selectedIds.size} order{selectedIds.size !== 1 ? "s" : ""} selected</span>
+            <div className="flex-1" />
+            <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())} className="text-muted-foreground hover:text-foreground">
+              Clear
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleBulkDelete}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {deleting ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5 mr-1.5" />}
+              Delete Selected
+            </Button>
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-40 h-10">
-              <SelectValue placeholder="All Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="confirmed">Confirmed</SelectItem>
-              <SelectItem value="dispatched">Dispatched</SelectItem>
-              <SelectItem value="delivered">Delivered</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        ) : (
+          <div className="flex items-center gap-4">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Search orders..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 h-10" />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-40 h-10">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="confirmed">Confirmed</SelectItem>
+                <SelectItem value="dispatched">Dispatched</SelectItem>
+                <SelectItem value="delivered">Delivered</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         <div className="border border-border rounded-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-secondary">
+                  <th className="w-10 px-4 py-3">
+                    <Checkbox
+                      checked={paginatedItems.length > 0 && selectedIds.size === paginatedItems.length}
+                      onCheckedChange={toggleSelectAll}
+                      aria-label="Select all orders"
+                    />
+                  </th>
                   <th className="text-left px-4 py-3 font-medium">Order</th>
                   <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">Customer</th>
                   <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Date</th>
@@ -142,7 +212,14 @@ export function AdminOrders() {
                 {paginatedItems.map((order) => {
                   const config = statusConfig[order.status]
                   return (
-                    <tr key={order.id} className="hover:bg-secondary/50 transition-colors">
+                    <tr key={order.id} className={`hover:bg-secondary/50 transition-colors ${selectedIds.has(order.id) ? "bg-secondary/30" : ""}`}>
+                      <td className="px-4 py-3">
+                        <Checkbox
+                          checked={selectedIds.has(order.id)}
+                          onCheckedChange={() => toggleSelect(order.id)}
+                          aria-label={`Select order ${order.orderNo}`}
+                        />
+                      </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2.5">
                           {order.items[0]?.image && (
@@ -175,7 +252,7 @@ export function AdminOrders() {
                 })}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                    <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
                       No orders found
                     </td>
                   </tr>

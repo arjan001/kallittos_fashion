@@ -51,6 +51,33 @@ export async function GET() {
   return NextResponse.json(result)
 }
 
+export async function DELETE(request: Request) {
+  const supabase = await createClient()
+  const { searchParams } = new URL(request.url)
+  const ids = searchParams.get("ids")
+
+  if (!ids) return NextResponse.json({ error: "Missing ids" }, { status: 400 })
+
+  const idArray = ids.split(",")
+
+  // Delete order items first (foreign key)
+  const { error: itemsError } = await supabase
+    .from("order_items")
+    .delete()
+    .in("order_id", idArray)
+
+  if (itemsError) return NextResponse.json({ error: itemsError.message }, { status: 500 })
+
+  // Delete orders
+  const { error } = await supabase
+    .from("orders")
+    .delete()
+    .in("id", idArray)
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ success: true, deleted: idArray.length })
+}
+
 export async function PATCH(request: Request) {
   const supabase = await createClient()
   const body = await request.json()
