@@ -2,11 +2,17 @@
 
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
-import { products } from "@/lib/data"
 import { ProductCard } from "./product-card"
+import type { Product } from "@/lib/types"
+import useSWR from "swr"
+
+const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 export function FeaturedProducts() {
-  const featured = products.slice(0, 8)
+  const { data: products = [] } = useSWR<Product[]>("/api/products", fetcher)
+  const featured = products.filter((p) => p.isOnOffer || p.isNew).slice(0, 8)
+
+  if (featured.length === 0) return null
 
   return (
     <section className="py-14 lg:py-20 bg-secondary/50">

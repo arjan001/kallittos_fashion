@@ -1,9 +1,13 @@
 "use client"
 
-import { runningOffers } from "@/lib/data"
+import useSWR from "swr"
+
+const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 export function TopBar() {
-  const doubled = [...runningOffers, ...runningOffers]
+  const { data } = useSWR("/api/site-data", fetcher)
+  const offers: string[] = data?.navbarOffers?.map((o: { text: string }) => o.text) || ["FREE SHIPPING on orders above KSh 5,000"]
+  const doubled = [...offers, ...offers]
 
   return (
     <div className="bg-foreground text-background overflow-hidden">

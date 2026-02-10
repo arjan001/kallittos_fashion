@@ -17,7 +17,6 @@ export async function PUT(request: Request) {
   const supabase = await createClient()
   const body = await request.json()
 
-  // Get current row ID
   const { data: current } = await supabase.from("site_settings").select("id").limit(1).single()
   if (!current) return NextResponse.json({ error: "No settings row found" }, { status: 404 })
 
@@ -36,18 +35,15 @@ export async function PUT(request: Request) {
       meta_keywords: body.metaKeywords,
       primary_color: body.primaryColor,
       secondary_color: body.secondaryColor,
-      font_heading: body.fontHeading,
-      font_body: body.fontBody,
       logo_url: body.logoUrl,
       favicon_url: body.faviconUrl,
-      footer_text: body.footerText,
-      social_instagram: body.socialInstagram,
-      social_tiktok: body.socialTiktok,
-      social_twitter: body.socialTwitter,
-      social_facebook: body.socialFacebook,
-      free_shipping_threshold: body.freeShippingThreshold,
-      enable_whatsapp_checkout: body.enableWhatsappCheckout,
-      enable_newsletter: body.enableNewsletter,
+      footer_about: body.footerText,
+      footer_copyright: body.footerCopyright,
+      instagram_url: body.socialInstagram,
+      tiktok_url: body.socialTiktok,
+      twitter_url: body.socialTwitter,
+      facebook_url: body.socialFacebook,
+      show_newsletter_popup: body.enableNewsletter,
       maintenance_mode: body.maintenanceMode,
     })
     .eq("id", current.id)

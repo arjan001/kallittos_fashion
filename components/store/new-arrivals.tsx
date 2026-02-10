@@ -2,11 +2,17 @@
 
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
-import { getNewArrivals } from "@/lib/data"
 import { ProductCard } from "./product-card"
+import type { Product } from "@/lib/types"
+import useSWR from "swr"
+
+const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 export function NewArrivals() {
-  const newProducts = getNewArrivals()
+  const { data: products = [] } = useSWR<Product[]>("/api/products", fetcher)
+  const newProducts = products.filter((p) => p.isNew)
+
+  if (newProducts.length === 0) return null
 
   return (
     <section className="py-14 lg:py-20">

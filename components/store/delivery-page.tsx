@@ -4,9 +4,18 @@ import { MapPin, Truck, Clock, Package } from "lucide-react"
 import { TopBar } from "./top-bar"
 import { Navbar } from "./navbar"
 import { Footer } from "./footer"
-import { deliveryLocations, formatPrice } from "@/lib/data"
+import type { DeliveryLocation } from "@/lib/types"
+import useSWR from "swr"
+
+const fetcher = (url: string) => fetch(url).then((r) => r.json())
+
+function formatPrice(price: number): string {
+  return `KSh ${price.toLocaleString()}`
+}
 
 export function DeliveryPage() {
+  const { data: deliveryLocations = [] } = useSWR<DeliveryLocation[]>("/api/delivery-locations", fetcher)
+
   return (
     <div className="min-h-screen flex flex-col">
       <TopBar />

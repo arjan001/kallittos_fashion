@@ -4,20 +4,25 @@ import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { X } from "lucide-react"
-import { offers } from "@/lib/data"
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import useSWR from "swr"
+import type { Offer } from "@/lib/types"
+
+const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 export function OfferModal() {
+  const { data } = useSWR("/api/site-data", fetcher)
+  const offer: Offer | null = data?.popupOffer || null
   const [isOpen, setIsOpen] = useState(false)
-  const offer = offers[0]
 
   useEffect(() => {
+    if (!offer) return
     const dismissed = sessionStorage.getItem("offer-dismissed")
     if (!dismissed) {
       const timer = setTimeout(() => setIsOpen(true), 3000)
       return () => clearTimeout(timer)
     }
-  }, [])
+  }, [offer])
 
   const handleClose = () => {
     setIsOpen(false)

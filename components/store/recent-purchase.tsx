@@ -3,7 +3,10 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import { X, CheckCircle, Eye } from "lucide-react"
-import { products } from "@/lib/data"
+import type { Product } from "@/lib/types"
+import useSWR from "swr"
+
+const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 const buyers = [
   { name: "Amina", location: "Nairobi" },
@@ -14,16 +17,18 @@ const buyers = [
 ]
 
 export function RecentPurchase() {
+  const { data: products = [] } = useSWR<Product[]>("/api/products", fetcher)
   const [visible, setVisible] = useState(false)
   const [current, setCurrent] = useState(0)
 
   useEffect(() => {
+    if (products.length === 0) return
     const showTimer = setTimeout(() => setVisible(true), 8000)
     return () => clearTimeout(showTimer)
-  }, [])
+  }, [products.length])
 
   useEffect(() => {
-    if (!visible) return
+    if (!visible || products.length === 0) return
     const interval = setInterval(() => {
       setVisible(false)
       setTimeout(() => {
@@ -32,9 +37,9 @@ export function RecentPurchase() {
       }, 500)
     }, 12000)
     return () => clearInterval(interval)
-  }, [visible])
+  }, [visible, products.length])
 
-  if (!visible) return null
+  if (!visible || products.length === 0) return null
 
   const buyer = buyers[current]
   const product = products[current % products.length]

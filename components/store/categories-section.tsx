@@ -2,10 +2,17 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { categories } from "@/lib/data"
 import { ArrowRight } from "lucide-react"
+import type { Category } from "@/lib/types"
+import useSWR from "swr"
+
+const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 export function CategoriesSection() {
+  const { data: categories = [] } = useSWR<Category[]>("/api/categories", fetcher)
+
+  if (categories.length === 0) return null
+
   return (
     <section className="py-14 lg:py-20">
       <div className="mx-auto max-w-7xl px-4">

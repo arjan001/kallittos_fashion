@@ -2,11 +2,17 @@
 
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
-import { getProductsOnOffer } from "@/lib/data"
 import { ProductCard } from "./product-card"
+import type { Product } from "@/lib/types"
+import useSWR from "swr"
+
+const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 export function OnOfferProducts() {
-  const offerProducts = getProductsOnOffer()
+  const { data: products = [] } = useSWR<Product[]>("/api/products", fetcher)
+  const offerProducts = products.filter((p) => p.isOnOffer)
+
+  if (offerProducts.length === 0) return null
 
   return (
     <section className="py-14 lg:py-20 bg-secondary/50">

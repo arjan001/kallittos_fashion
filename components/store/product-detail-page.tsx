@@ -8,17 +8,38 @@ import { TopBar } from "./top-bar"
 import { Navbar } from "./navbar"
 import { Footer } from "./footer"
 import { ProductCard } from "./product-card"
-import { getProductBySlug, getSimilarProducts, formatPrice, products } from "@/lib/data"
+import type { Product } from "@/lib/types"
 import { useCart } from "@/lib/cart-context"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import useSWR from "swr"
+
+const fetcher = (url: string) => fetch(url).then((r) => r.json())
+
+function formatPrice(price: number): string {
+  return `KSh ${price.toLocaleString()}`
+}
 
 export function ProductDetailPage({ slug }: { slug: string }) {
-  const product = getProductBySlug(slug)
+  const { data: allProducts = [] } = useSWR<Product[]>("/api/products", fetcher)
+  const product = allProducts.find((p) => p.slug === slug) || null
   const { addItem } = useCart()
   const [selectedImage, setSelectedImage] = useState(0)
   const [quantity, setQuantity] = useState(1)
   const [selectedVariations, setSelectedVariations] = useState<Record<string, string>>({})
+
+  if (!allProducts.length) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <TopBar />
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center">
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
 
   if (!product) {
     return (
@@ -38,8 +59,12 @@ export function ProductDetailPage({ slug }: { slug: string }) {
     )
   }
 
-  const similar = getSimilarProducts(product)
-  const youMayLike = products.filter((p) => p.id !== product.id && p.categorySlug !== product.categorySlug).slice(0, 4)
+  const similar = allProducts.filter(
+    (p) => p.id !== product.id && p.categorySlug === product.categorySlug
+  ).slice(0, 4)
+  const youMayLike = allProducts.filter(
+    (p) => p.id !== product.id && p.categorySlug !== product.categorySlug
+  ).slice(0, 4)
 
   const handleAddToCart = () => {
     addItem(product, quantity, Object.keys(selectedVariations).length > 0 ? selectedVariations : undefined)
