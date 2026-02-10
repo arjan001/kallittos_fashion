@@ -2,12 +2,12 @@
 
 import { useState, useMemo } from "react"
 import { useSearchParams } from "next/navigation"
-import { SlidersHorizontal, Grid3X3, LayoutList, X } from "lucide-react"
+import { SlidersHorizontal, Grid3X3, LayoutList, X, Search } from "lucide-react"
 import { TopBar } from "./top-bar"
 import { Navbar } from "./navbar"
 import { Footer } from "./footer"
 import { ProductCard } from "./product-card"
-import { products, categories, formatPrice } from "@/lib/data"
+import { products, categories, formatPrice, searchProducts } from "@/lib/data"
 import { Slider } from "@/components/ui/slider"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
@@ -117,6 +117,7 @@ export function ShopPage() {
   const searchParams = useSearchParams()
   const categoryParam = searchParams.get("category") || ""
   const filterParam = searchParams.get("filter") || ""
+  const queryParam = searchParams.get("q") || ""
 
   const [selectedCategory, setSelectedCategory] = useState(categoryParam)
   const [sortBy, setSortBy] = useState("newest")
@@ -125,9 +126,22 @@ export function ShopPage() {
   const maxPrice = Math.max(...products.map((p) => p.price))
   const [priceRange, setPriceRange] = useState([0, maxPrice])
   const [gridView, setGridView] = useState<"grid" | "list">("grid")
+  const [localSearch, setLocalSearch] = useState(queryParam)
 
   const filtered = useMemo(() => {
-    let result = [...products]
+    let result = queryParam
+      ? searchProducts(queryParam)
+      : [...products]
+
+    if (localSearch && !queryParam) {
+      const q = localSearch.toLowerCase()
+      result = result.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.category.toLowerCase().includes(q) ||
+          p.tags.some((t) => t.toLowerCase().includes(q))
+      )
+    }
 
     if (selectedCategory) {
       result = result.filter((p) => p.categorySlug === selectedCategory)
@@ -158,9 +172,10 @@ export function ShopPage() {
     }
 
     return result
-  }, [selectedCategory, showNew, showOffers, priceRange, sortBy])
+  }, [selectedCategory, showNew, showOffers, priceRange, sortBy, queryParam, localSearch])
 
   const activeFilters = [
+    queryParam && `Search: "${queryParam}"`,
     selectedCategory && categories.find((c) => c.slug === selectedCategory)?.name,
     showNew && "New Arrivals",
     showOffers && "On Offer",
@@ -174,11 +189,33 @@ export function ShopPage() {
       <main className="flex-1">
         <div className="mx-auto max-w-7xl px-4 py-8">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-serif font-bold">Shop</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {filtered.length} product{filtered.length !== 1 ? "s" : ""}
-            </p>
+          <div className="flex items-end justify-between mb-8">
+            <div>
+              <h1 className="text-3xl font-serif font-bold">
+                {queryParam ? `Results for "${queryParam}"` : "Shop"}
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                {filtered.length} product{filtered.length !== 1 ? "s" : ""}
+              </p>
+            </div>
+            {/* Inline Search */}
+            <div className="hidden md:flex items-center border border-border rounded-sm max-w-xs">
+              <input
+                type="text"
+                placeholder="Filter products..."
+                value={localSearch}
+                onChange={(e) => setLocalSearch(e.target.value)}
+                className="flex-1 h-9 px-3 bg-background text-sm outline-none"
+              />
+              {localSearch && (
+                <button type="button" onClick={() => setLocalSearch("")} className="px-2">
+                  <X className="h-3.5 w-3.5 text-muted-foreground" />
+                </button>
+              )}
+              <div className="px-2 border-l border-border">
+                <Search className="h-3.5 w-3.5 text-muted-foreground" />
+              </div>
+            </div>
           </div>
 
           {/* Active Filters */}
@@ -193,6 +230,9 @@ export function ShopPage() {
                   <button
                     type="button"
                     onClick={() => {
+                      if (String(filter).startsWith("Search:")) {
+                        window.location.href = "/shop"
+                      }
                       if (filter === categories.find((c) => c.slug === selectedCategory)?.name) setSelectedCategory("")
                       if (filter === "New Arrivals") setShowNew(false)
                       if (filter === "On Offer") setShowOffers(false)
@@ -210,6 +250,8 @@ export function ShopPage() {
                   setShowNew(false)
                   setShowOffers(false)
                   setPriceRange([0, maxPrice])
+                  setLocalSearch("")
+                  if (queryParam) window.location.href = "/shop"
                 }}
                 className="text-xs text-muted-foreground hover:text-foreground underline"
               >
@@ -307,6 +349,7 @@ export function ShopPage() {
                       setShowNew(false)
                       setShowOffers(false)
                       setPriceRange([0, maxPrice])
+                      setLocalSearch("")
                     }}
                     className="mt-3 text-sm underline hover:text-muted-foreground"
                   >

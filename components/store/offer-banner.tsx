@@ -15,8 +15,8 @@ export function OfferBanner() {
             className="relative overflow-hidden rounded-sm min-h-[280px] flex items-center group"
           >
             <Image
-              src="https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=700&h=400&fit=crop"
-              alt="Season sale collection"
+              src="https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=700&h=400&fit=crop"
+              alt="Denim sale collection"
               fill
               className="object-cover group-hover:scale-105 transition-transform duration-700"
             />
@@ -26,10 +26,10 @@ export function OfferBanner() {
                 Limited Offer
               </p>
               <h3 className="text-background text-2xl lg:text-3xl font-serif font-bold">
-                Season Sale
+                Denim Season Sale
               </h3>
               <p className="text-background/70 text-sm mt-2 max-w-xs">
-                Up to 40% off on selected items. Thrift meets style.
+                Up to 30% off on selected jeans. Thrift meets style, curated for you.
               </p>
               <div className="inline-flex items-center gap-2 mt-4 text-background text-sm font-medium">
                 Shop The Sale
@@ -44,8 +44,8 @@ export function OfferBanner() {
             className="relative overflow-hidden rounded-sm min-h-[280px] flex items-center group"
           >
             <Image
-              src="https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=700&h=400&fit=crop"
-              alt="New arrivals collection"
+              src="https://images.unsplash.com/photo-1604176354204-9268737828e4?w=700&h=400&fit=crop"
+              alt="New denim arrivals"
               fill
               className="object-cover group-hover:scale-105 transition-transform duration-700"
             />
@@ -55,10 +55,10 @@ export function OfferBanner() {
                 Just Dropped
               </p>
               <h3 className="text-background text-2xl lg:text-3xl font-serif font-bold">
-                New Arrivals
+                New Denim Arrivals
               </h3>
               <p className="text-background/70 text-sm mt-2 max-w-xs">
-                Fresh pieces curated for your wardrobe. Posted daily.
+                Fresh pairs curated weekly. Mom jeans, skinny fits, and more.
               </p>
               <div className="inline-flex items-center gap-2 mt-4 text-background text-sm font-medium">
                 Explore New In
