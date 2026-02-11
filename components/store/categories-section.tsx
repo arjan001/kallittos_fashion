@@ -44,9 +44,9 @@ export function CategoriesSection() {
   const { data: categories = [] } = useSWR<Category[]>("/api/categories", fetcher)
 
   return (
-    <section className="py-14 lg:py-20">
+    <section className="hidden md:block py-14 lg:py-20">
       <div className="mx-auto max-w-7xl px-4">
-        {/* Collections */}
+        {/* Collections -- hidden on mobile */}
         <div className="mb-14">
           <div className="flex items-end justify-between mb-8">
             <div>
@@ -59,19 +59,19 @@ export function CategoriesSection() {
             </div>
             <Link
               href="/shop"
-              className="hidden sm:flex items-center gap-1.5 text-sm font-medium hover:text-muted-foreground transition-colors"
+              className="flex items-center gap-1.5 text-sm font-medium hover:text-muted-foreground transition-colors"
             >
               Shop All
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 lg:gap-6">
+          <div className="grid grid-cols-3 gap-4 lg:gap-6">
             {COLLECTIONS.map((col) => (
               <Link key={col.slug} href={col.href} className="group">
                 <div className="relative aspect-[4/5] overflow-hidden rounded-sm bg-secondary">
                   <Image
                     src={col.image}
-                    alt={`${col.name} denim collection`}
+                    alt={`${col.name} collection`}
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-500"
                   />
@@ -92,7 +92,7 @@ export function CategoriesSection() {
           </div>
         </div>
 
-        {/* Categories - circular cards */}
+        {/* Categories - circular cards, 7 per row */}
         {categories.length > 0 && (
           <div>
             <div className="flex items-end justify-between mb-8">
@@ -105,14 +105,15 @@ export function CategoriesSection() {
                 </h2>
               </div>
             </div>
-            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-x-4 gap-y-6">
+            <div className="flex flex-wrap justify-center gap-x-6 gap-y-6 lg:gap-x-8">
               {categories.map((category) => (
                 <Link
                   key={category.id}
                   href={`/shop?category=${category.slug}`}
                   className="group flex flex-col items-center"
+                  style={{ width: "calc((100% - 6 * 2rem) / 7)", minWidth: "80px" }}
                 >
-                  <div className="relative w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 overflow-hidden rounded-full bg-secondary ring-2 ring-border group-hover:ring-foreground transition-all">
+                  <div className="relative w-20 h-20 lg:w-24 lg:h-24 overflow-hidden rounded-full bg-secondary ring-2 ring-border group-hover:ring-foreground transition-all">
                     <Image
                       src={CATEGORY_IMAGES[category.slug] || category.image || "/placeholder.svg"}
                       alt={category.name}
@@ -121,7 +122,7 @@ export function CategoriesSection() {
                     />
                     <div className="absolute inset-0 bg-foreground/10 group-hover:bg-foreground/20 transition-colors rounded-full" />
                   </div>
-                  <h3 className="text-xs sm:text-sm font-medium mt-2.5 text-center leading-tight">{category.name}</h3>
+                  <h3 className="text-xs font-medium mt-2.5 text-center leading-tight">{category.name}</h3>
                 </Link>
               ))}
             </div>

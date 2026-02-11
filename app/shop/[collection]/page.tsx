@@ -15,7 +15,7 @@ const META: Record<string, { title: string; description: string }> = {
   },
   babyshop: {
     title: "Kali-ttos Little Wardrobe | Baby & Toddler Fashion | Kallittos Fashions",
-    description: "Adorable outfits for newborns, babies & toddlers. Tiny denim, cute dungarees & stylish baby clothes. Follow @kalittos01 on TikTok. Delivered across Kenya.",
+    description: "Shop all baby clothing, shoes & accessories for ages 0-6. Rompers, onesies, tiny outfits & more at Kali-ttos Little Wardrobe. Follow @kalittos01 on TikTok. Delivered across Kenya.",
   },
 }
 

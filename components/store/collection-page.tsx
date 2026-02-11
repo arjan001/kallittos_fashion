@@ -35,7 +35,7 @@ const COLLECTION_INFO: Record<string, { label: string; tagline: string; banners:
   },
   babyshop: {
     label: "Kali-ttos Little Wardrobe",
-    tagline: "Adorable outfits for newborns, babies & toddlers. Tiny styles, big smiles.",
+    tagline: "All your baby essentials in one place -- clothing, shoes & accessories for ages 0-1, 1-3 & 4-6.",
     banners: ["/banners/babyshop-page-banner.jpg", "/banners/babyshop-collection.jpg"],
     social: {
       label: "Follow us on TikTok",

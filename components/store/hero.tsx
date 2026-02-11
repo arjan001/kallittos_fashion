@@ -12,7 +12,7 @@ const FALLBACK_BANNERS: HeroBanner[] = [
   {
     id: "babyshop",
     title: "Kali-ttos Little Wardrobe",
-    subtitle: "Adorable outfits for your little ones. From newborns to toddlers -- tiny styles, big smiles.",
+    subtitle: "Everything your little one needs -- from rompers & onesies to tiny shoes & accessories. Ages 0-1, 1-3 & 4-6.",
     collection: "babyshop",
     bannerImage: "/banners/babyshop-collection.jpg",
     linkUrl: "/shop/babyshop",
@@ -70,7 +70,7 @@ export function Hero() {
             </div>
             <div className="relative z-10 p-8 lg:p-12 w-full">
               <p className="text-background/80 text-xs tracking-[0.3em] uppercase mb-2">
-                {mainBanner.collection === "babyshop" ? "New Collection" : "Curated Denim"}
+                {mainBanner.collection === "babyshop" ? "Baby Essentials" : "Curated Denim"}
               </p>
               <h1 className="text-background text-4xl lg:text-5xl font-serif font-bold leading-tight text-balance">
                 {mainBanner.title}
