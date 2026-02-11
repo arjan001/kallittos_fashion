@@ -20,6 +20,7 @@ import {
   Settings,
   Users,
   UserCircle,
+  FileText,
 } from "lucide-react"
 
 const navItems = [
@@ -30,6 +31,7 @@ const navItems = [
   { label: "Offers & Banners", href: "/admin/banners", icon: ImageIcon },
   { label: "Delivery", href: "/admin/delivery-locations", icon: Truck },
   { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
+  { label: "Policies", href: "/admin/policies", icon: FileText },
   { label: "Users & Roles", href: "/admin/users", icon: Users },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ]
