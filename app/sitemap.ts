@@ -1,10 +1,10 @@
 import type { MetadataRoute } from "next"
-import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 
 const SITE_URL = "https://kallittofashions.com"
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   // Static pages
   const staticPages: MetadataRoute.Sitemap = [

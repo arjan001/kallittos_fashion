@@ -1,8 +1,20 @@
+User-agent: Googlebot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /auth/
+
+User-agent: Bingbot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /auth/
+
 User-agent: *
 Allow: /
 Disallow: /admin/
-Disallow: /auth/
 Disallow: /api/
-Disallow: /checkout
+Disallow: /auth/
 
 Sitemap: https://kallittofashions.com/sitemap.xml
+Host: https://kallittofashions.com
