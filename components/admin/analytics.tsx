@@ -78,14 +78,23 @@ export function AdminAnalytics() {
   const prodTotalPages = Math.max(1, Math.ceil(topProducts.length / PROD_PER_PAGE))
   const pagedTopProducts = topProducts.slice((prodPage - 1) * PROD_PER_PAGE, prodPage * PROD_PER_PAGE)
 
-  // Category breakdown from orders
-  const catCount: Record<string, number> = {}
-  products.forEach((p) => { catCount[p.category] = (catCount[p.category] || 0) + 1 })
-  const totalCatProducts = products.length || 1
-  const topCategories = Object.entries(catCount)
-    .map(([name, count]) => ({ name, orders: count, percentage: Math.round((count / totalCatProducts) * 100) }))
-    .sort((a, b) => b.orders - a.orders)
-    .slice(0, 5)
+  // Category breakdown from actual confirmed sales (matching items to products)
+  const catSales: Record<string, { count: number; revenue: number }> = {}
+  const productCategoryMap: Record<string, string> = {}
+  products.forEach((p) => { productCategoryMap[p.name.toLowerCase()] = p.category })
+  salesOrders.forEach((o) => {
+    o.items.forEach((item) => {
+      const category = productCategoryMap[item.name.toLowerCase()] || "Other"
+      if (!catSales[category]) catSales[category] = { count: 0, revenue: 0 }
+      catSales[category].count += item.qty
+      catSales[category].revenue += item.price * item.qty
+    })
+  })
+  const totalCatSold = Object.values(catSales).reduce((s, c) => s + c.count, 0) || 1
+  const topCategories = Object.entries(catSales)
+    .map(([name, data]) => ({ name, sold: data.count, revenue: data.revenue, percentage: Math.round((data.count / totalCatSold) * 100) }))
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 6)
 
   // Recent activity from orders (as live feed)
   const recentActivity = orders
@@ -179,20 +188,20 @@ export function AdminAnalytics() {
             )}
           </div>
 
-          {/* Top Categories */}
+          {/* Sales by Category */}
           <div className="border border-border rounded-sm">
             <div className="px-5 py-3 border-b border-border">
-              <h2 className="text-sm font-semibold">Orders by Category</h2>
+              <h2 className="text-sm font-semibold">Sales by Category</h2>
             </div>
             <div className="p-5 space-y-4">
               {topCategories.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4">No category data</p>
+                <p className="text-sm text-muted-foreground text-center py-4">No sales data yet</p>
               )}
               {topCategories.map((c) => (
                 <div key={c.name}>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-sm">{c.name}</span>
-                    <span className="text-xs text-muted-foreground">{c.orders} orders ({c.percentage}%)</span>
+                    <span className="text-sm font-medium">{c.name}</span>
+                    <span className="text-xs text-muted-foreground">{c.sold} sold -- {formatPrice(c.revenue)} ({c.percentage}%)</span>
                   </div>
                   <div className="h-2 bg-secondary rounded-full overflow-hidden">
                     <div className="h-full bg-foreground rounded-full transition-all" style={{ width: `${c.percentage}%` }} />
