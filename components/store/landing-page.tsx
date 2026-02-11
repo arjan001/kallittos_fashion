@@ -9,7 +9,7 @@ import { OfferBanner } from "./offer-banner"
 import { NewArrivals } from "./new-arrivals"
 import { OnOfferProducts } from "./on-offer-products"
 import { Newsletter } from "./newsletter"
-import { SocialFeed } from "./social-feed"
+
 import { Footer } from "./footer"
 import { OfferModal } from "./offer-modal"
 import { RecentPurchase } from "./recent-purchase"
@@ -26,7 +26,6 @@ export function LandingPage() {
         <OfferBanner />
         <NewArrivals />
         <OnOfferProducts />
-        <SocialFeed />
         <Newsletter />
       </main>
       <Footer />

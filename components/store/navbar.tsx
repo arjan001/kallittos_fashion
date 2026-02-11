@@ -231,7 +231,7 @@ export function Navbar() {
 
       <div className="hidden lg:block border-t border-border">
         <div className="mx-auto max-w-7xl px-4">
-          <div className="flex items-center justify-between h-12">
+          <div className="flex items-center justify-center h-12">
             <nav className="flex items-center gap-8">
               <Link href="/" className="text-sm font-medium hover:text-muted-foreground transition-colors">Home</Link>
               <Link href="/shop" className="text-sm font-medium hover:text-muted-foreground transition-colors">Shop</Link>
@@ -242,7 +242,6 @@ export function Navbar() {
               <Link href="/shop?filter=offers" className="text-sm font-medium hover:text-muted-foreground transition-colors">On Offer</Link>
               <Link href="/track-order" className="text-sm font-medium hover:text-muted-foreground transition-colors">Track My Order</Link>
             </nav>
-            <a href="tel:+254713809695" className="flex items-center gap-2 text-sm font-medium"><Phone className="h-4 w-4" />0713 809 695</a>
           </div>
         </div>
       </div>
