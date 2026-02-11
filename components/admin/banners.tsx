@@ -303,7 +303,7 @@ export function AdminBanners() {
             <div>
               <Label className="text-sm font-medium mb-1.5 block">Collection *</Label>
               <div className="flex gap-2">
-                {["men", "women", "kids"].map((c) => (
+                {["men", "women", "babyshop"].map((c) => (
                   <Button key={c} variant={heroForm.collection === c ? "default" : "outline"} size="sm" onClick={() => setHeroForm({ ...heroForm, collection: c, linkUrl: `/shop/${c}` })} className={heroForm.collection === c ? "bg-foreground text-background capitalize" : "bg-transparent capitalize"}>{c}</Button>
                 ))}
               </div>

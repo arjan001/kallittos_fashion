@@ -33,7 +33,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     },
     {
-      url: `${SITE_URL}/shop/kids`,
+      url: `${SITE_URL}/shop/babyshop`,
       lastModified: new Date(),
       changeFrequency: "daily",
       priority: 0.9,

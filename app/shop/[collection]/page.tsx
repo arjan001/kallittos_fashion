@@ -2,7 +2,7 @@ import { CollectionPage } from "@/components/store/collection-page"
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 
-const VALID_COLLECTIONS = ["men", "women", "kids"] as const
+const VALID_COLLECTIONS = ["men", "women", "babyshop"] as const
 
 const META: Record<string, { title: string; description: string }> = {
   men: {
@@ -13,9 +13,9 @@ const META: Record<string, { title: string; description: string }> = {
     title: "Shop Women's Denim Collection | Kallittos Fashions",
     description: "Curated denim styles for every woman. Mom jeans, skinny jeans, wide-leg, denim skirts & jackets. Thrift finds & brand-new pieces delivered across Kenya.",
   },
-  kids: {
-    title: "Shop Kids' Denim Collection | Kallittos Fashions",
-    description: "Adorable denim for the little ones. Durable jeans, cute dungarees & denim jackets for kids. Stylish & affordable, delivered across Kenya.",
+  babyshop: {
+    title: "Kali-ttos Little Wardrobe | Baby & Toddler Fashion | Kallittos Fashions",
+    description: "Adorable outfits for newborns, babies & toddlers. Tiny denim, cute dungarees & stylish baby clothes. Follow @kalittos01 on TikTok. Delivered across Kenya.",
   },
 }
 
