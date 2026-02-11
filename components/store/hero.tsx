@@ -10,13 +10,13 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 const FALLBACK_BANNERS: HeroBanner[] = [
   {
-    id: "kids",
-    title: "Kids Collection",
-    subtitle: "Adorable denim for the little ones. Stylish, durable & affordable.",
-    collection: "kids",
-    bannerImage: "/banners/kids-collection.jpg",
-    linkUrl: "/shop/kids",
-    buttonText: "Shop Kids",
+    id: "babyshop",
+    title: "Kali-ttos Little Wardrobe",
+    subtitle: "Adorable outfits for your little ones. From newborns to toddlers -- tiny styles, big smiles.",
+    collection: "babyshop",
+    bannerImage: "/banners/babyshop-collection.jpg",
+    linkUrl: "/shop/babyshop",
+    buttonText: "Shop Babyshop",
     sortOrder: 0,
   },
   {
@@ -70,7 +70,7 @@ export function Hero() {
             </div>
             <div className="relative z-10 p-8 lg:p-12 w-full">
               <p className="text-background/80 text-xs tracking-[0.3em] uppercase mb-2">
-                {mainBanner.collection === "kids" ? "New Collection" : "Curated Denim"}
+                {mainBanner.collection === "babyshop" ? "New Collection" : "Curated Denim"}
               </p>
               <h1 className="text-background text-4xl lg:text-5xl font-serif font-bold leading-tight text-balance">
                 {mainBanner.title}

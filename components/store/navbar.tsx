@@ -106,7 +106,7 @@ export function Navbar() {
                 <p className="pt-3 pb-1 text-[10px] tracking-[0.2em] uppercase text-muted-foreground">Collections</p>
                 <Link href="/shop/men" className="py-2.5 text-sm border-b border-border pl-3">Men</Link>
                 <Link href="/shop/women" className="py-2.5 text-sm border-b border-border pl-3">Women</Link>
-                <Link href="/shop/kids" className="py-2.5 text-sm border-b border-border pl-3">Kids</Link>
+                <Link href="/shop/babyshop" className="py-2.5 text-sm border-b border-border pl-3">Babyshop</Link>
                 <p className="pt-3 pb-1 text-[10px] tracking-[0.2em] uppercase text-muted-foreground">Categories</p>
                 {categories.map((cat) => (
                   <Link key={cat.id} href={`/shop?category=${cat.slug}`} className="py-2.5 text-sm border-b border-border pl-3">{cat.name}</Link>
@@ -135,7 +135,7 @@ export function Navbar() {
                     <p className="px-4 pt-3 pb-1 text-[10px] tracking-[0.2em] uppercase text-muted-foreground">Collections</p>
                     <Link href="/shop/men" className="block px-4 py-2.5 text-sm font-medium hover:bg-secondary transition-colors" onClick={() => setCategoriesOpen(false)}>Men</Link>
                     <Link href="/shop/women" className="block px-4 py-2.5 text-sm font-medium hover:bg-secondary transition-colors" onClick={() => setCategoriesOpen(false)}>Women</Link>
-                    <Link href="/shop/kids" className="block px-4 py-2.5 text-sm font-medium hover:bg-secondary transition-colors" onClick={() => setCategoriesOpen(false)}>Kids</Link>
+                    <Link href="/shop/babyshop" className="block px-4 py-2.5 text-sm font-medium hover:bg-secondary transition-colors" onClick={() => setCategoriesOpen(false)}>Babyshop</Link>
                     <div className="border-t border-border my-1" />
                     <p className="px-4 pt-2 pb-1 text-[10px] tracking-[0.2em] uppercase text-muted-foreground">Categories</p>
                     {categories.map((cat) => (
@@ -232,14 +232,12 @@ export function Navbar() {
       <div className="hidden lg:block border-t border-border">
         <div className="mx-auto max-w-7xl px-4">
           <div className="flex items-center justify-between h-12">
-            <div className="relative">
-              <button type="button" className="flex items-center gap-2 bg-foreground text-background px-5 py-2 text-sm font-medium" onClick={() => setCategoriesOpen(!categoriesOpen)}>
-                <Menu className="h-4 w-4" />Categories<ChevronDown className="h-3.5 w-3.5" />
-              </button>
-            </div>
             <nav className="flex items-center gap-8">
               <Link href="/" className="text-sm font-medium hover:text-muted-foreground transition-colors">Home</Link>
               <Link href="/shop" className="text-sm font-medium hover:text-muted-foreground transition-colors">Shop</Link>
+              <Link href="/shop/men" className="text-sm font-medium hover:text-muted-foreground transition-colors">Men</Link>
+              <Link href="/shop/women" className="text-sm font-medium hover:text-muted-foreground transition-colors">Women</Link>
+              <Link href="/shop/babyshop" className="text-sm font-medium hover:text-muted-foreground transition-colors">Babyshop</Link>
               <Link href="/shop?filter=new" className="text-sm font-medium hover:text-muted-foreground transition-colors">New Arrivals</Link>
               <Link href="/shop?filter=offers" className="text-sm font-medium hover:text-muted-foreground transition-colors">On Offer</Link>
               <Link href="/track-order" className="text-sm font-medium hover:text-muted-foreground transition-colors">Track My Order</Link>

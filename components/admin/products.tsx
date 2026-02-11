@@ -652,7 +652,7 @@ export function AdminProducts() {
                 <SelectContent>
                   <SelectItem value="men">Men</SelectItem>
                   <SelectItem value="women">Women</SelectItem>
-                  <SelectItem value="kids">Kids</SelectItem>
+                  <SelectItem value="babyshop">Babyshop</SelectItem>
                   <SelectItem value="unisex">Unisex</SelectItem>
                 </SelectContent>
               </Select>
