@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
-import type { Product, Category, DeliveryLocation, Offer } from "./types"
+import type { Product, Category, DeliveryLocation, Offer, HeroBanner } from "./types"
 
 export function formatPrice(price: number): string {
   return `KSh ${price.toLocaleString()}`
@@ -37,6 +37,7 @@ function mapProduct(row: Record<string, unknown>, images: Record<string, unknown
     description: (row.description as string) || "",
     variations: variationsList.length > 0 ? variationsList : undefined,
     tags: productTags[row.id as string] || [],
+    collection: (row.collection as string) || "unisex",
     isNew: row.is_new as boolean,
     isOnOffer: row.is_on_offer as boolean,
     offerPercentage: row.offer_percentage ? Number(row.offer_percentage) : undefined,
@@ -295,4 +296,54 @@ export async function createOrder(order: {
   if (itemsError) throw itemsError
 
   return { orderNumber: orderData.order_number, orderId: orderData.id }
+}
+
+export async function getHeroBanners(): Promise<HeroBanner[]> {
+  const supabase = await createClient()
+
+  const { data } = await supabase
+    .from("hero_banners")
+    .select("*")
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true })
+
+  if (!data) return []
+
+  return data.map((b) => ({
+    id: b.id,
+    title: b.title,
+    subtitle: b.subtitle || "",
+    collection: b.collection,
+    bannerImage: b.banner_image || `/banners/${b.collection}-collection.jpg`,
+    linkUrl: b.link_url,
+    buttonText: b.button_text || "Shop Now",
+    sortOrder: b.sort_order,
+  }))
+}
+
+export async function getProductsByCollection(collection: string): Promise<Product[]> {
+  const supabase = await createClient()
+
+  const [productsRes, imagesRes, variationsRes, productTagsRes] = await Promise.all([
+    supabase.from("products").select("*, categories(name, slug)").eq("collection", collection).order("sort_order", { ascending: true }),
+    supabase.from("product_images").select("*").order("sort_order", { ascending: true }),
+    supabase.from("product_variations").select("*"),
+    supabase.from("product_tags").select("product_id, tags(name)"),
+  ])
+
+  if (!productsRes.data) return []
+
+  const tagMap: Record<string, string[]> = {}
+  for (const pt of productTagsRes.data || []) {
+    const pid = pt.product_id as string
+    const tagName = (pt as Record<string, unknown> & { tags?: { name: string } }).tags?.name
+    if (tagName) {
+      if (!tagMap[pid]) tagMap[pid] = []
+      tagMap[pid].push(tagName)
+    }
+  }
+
+  return productsRes.data.map((row) =>
+    mapProduct(row, imagesRes.data || [], variationsRes.data || [], tagMap)
+  )
 }

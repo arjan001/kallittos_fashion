@@ -103,8 +103,13 @@ export function Navbar() {
               <nav className="flex flex-col px-6 gap-1">
                 <Link href="/" className="py-3 text-sm font-medium border-b border-border">Home</Link>
                 <Link href="/shop" className="py-3 text-sm font-medium border-b border-border">Shop All</Link>
+                <p className="pt-3 pb-1 text-[10px] tracking-[0.2em] uppercase text-muted-foreground">Collections</p>
+                <Link href="/shop/men" className="py-2.5 text-sm border-b border-border pl-3">Men</Link>
+                <Link href="/shop/women" className="py-2.5 text-sm border-b border-border pl-3">Women</Link>
+                <Link href="/shop/kids" className="py-2.5 text-sm border-b border-border pl-3">Kids</Link>
+                <p className="pt-3 pb-1 text-[10px] tracking-[0.2em] uppercase text-muted-foreground">Categories</p>
                 {categories.map((cat) => (
-                  <Link key={cat.id} href={`/shop?category=${cat.slug}`} className="py-3 text-sm border-b border-border">{cat.name}</Link>
+                  <Link key={cat.id} href={`/shop?category=${cat.slug}`} className="py-2.5 text-sm border-b border-border pl-3">{cat.name}</Link>
                 ))}
                 <Link href="/track-order" className="py-3 text-sm font-medium border-b border-border">Track My Order</Link>
               </nav>
@@ -127,6 +132,12 @@ export function Navbar() {
                 </div>
                 {categoriesOpen && (
                   <div className="absolute top-full left-0 mt-1 w-52 bg-background border border-border shadow-lg rounded-sm z-50">
+                    <p className="px-4 pt-3 pb-1 text-[10px] tracking-[0.2em] uppercase text-muted-foreground">Collections</p>
+                    <Link href="/shop/men" className="block px-4 py-2.5 text-sm font-medium hover:bg-secondary transition-colors" onClick={() => setCategoriesOpen(false)}>Men</Link>
+                    <Link href="/shop/women" className="block px-4 py-2.5 text-sm font-medium hover:bg-secondary transition-colors" onClick={() => setCategoriesOpen(false)}>Women</Link>
+                    <Link href="/shop/kids" className="block px-4 py-2.5 text-sm font-medium hover:bg-secondary transition-colors" onClick={() => setCategoriesOpen(false)}>Kids</Link>
+                    <div className="border-t border-border my-1" />
+                    <p className="px-4 pt-2 pb-1 text-[10px] tracking-[0.2em] uppercase text-muted-foreground">Categories</p>
                     {categories.map((cat) => (
                       <Link key={cat.id} href={`/shop?category=${cat.slug}`} className="block px-4 py-2.5 text-sm hover:bg-secondary transition-colors" onClick={() => setCategoriesOpen(false)}>{cat.name}</Link>
                     ))}

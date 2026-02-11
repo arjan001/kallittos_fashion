@@ -14,7 +14,19 @@ export interface Product {
   isOnOffer?: boolean
   offerPercentage?: number
   inStock: boolean
+  collection?: string
   createdAt: string
+}
+
+export interface HeroBanner {
+  id: string
+  title: string
+  subtitle: string
+  collection: string
+  bannerImage: string
+  linkUrl: string
+  buttonText: string
+  sortOrder: number
 }
 
 export interface ProductVariation {

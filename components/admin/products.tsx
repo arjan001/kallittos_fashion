@@ -31,6 +31,7 @@ interface ProductForm {
   price: string
   originalPrice: string
   category: string
+  collection: string
   description: string
   images: string[]
   isNew: boolean
@@ -46,6 +47,7 @@ const emptyForm: ProductForm = {
   price: "",
   originalPrice: "",
   category: "",
+  collection: "women",
   description: "",
   images: [],
   isNew: false,
@@ -103,6 +105,7 @@ export function AdminProducts() {
       price: product.price.toString(),
       originalPrice: product.originalPrice?.toString() || "",
       category: product.categorySlug,
+      collection: product.collection || "women",
       description: product.description,
       images: [...product.images],
       isNew: product.isNew || false,
@@ -128,6 +131,7 @@ export function AdminProducts() {
       price: Number.parseFloat(form.price) || 0,
       originalPrice: form.originalPrice ? Number.parseFloat(form.originalPrice) : null,
       categorySlug: form.category,
+      collection: form.collection,
       description: form.description,
       images: form.images,
       isNew: form.isNew,
@@ -637,6 +641,21 @@ export function AdminProducts() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            <div>
+              <Label className="text-sm font-medium mb-1.5 block">Collection *</Label>
+              <Select value={form.collection} onValueChange={(val) => setForm({ ...form, collection: val })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select collection" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="men">Men</SelectItem>
+                  <SelectItem value="women">Women</SelectItem>
+                  <SelectItem value="kids">Kids</SelectItem>
+                  <SelectItem value="unisex">Unisex</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
