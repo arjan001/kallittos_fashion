@@ -146,7 +146,50 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
               "@context": "https://schema.org",
-              "@type": "ClothingStore",
+              "@type": "BreadcrumbList",
+              itemListElement: [
+                { "@type": "ListItem", position: 1, name: "Home", item: "https://kallittofashions.com" },
+                { "@type": "ListItem", position: 2, name: "Shop", item: "https://kallittofashions.com/shop" },
+                { "@type": "ListItem", position: 3, name: "Men's Collection", item: "https://kallittofashions.com/shop/men" },
+                { "@type": "ListItem", position: 4, name: "Women's Collection", item: "https://kallittofashions.com/shop/women" },
+                { "@type": "ListItem", position: 5, name: "Kali-ttos Little Wardrobe", item: "https://kallittofashions.com/shop/babyshop" },
+              ],
+            }),
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "Kallittos Fashions",
+              legalName: "Kallittos Fashions Kenya",
+              url: "https://kallittofashions.com",
+              foundingDate: "2024",
+              contactPoint: {
+                "@type": "ContactPoint",
+                contactType: "Customer Service",
+                telephone: "+254713809695",
+                email: "info@kallitosfashion.com",
+                url: "https://wa.me/254713809695",
+              },
+              location: {
+                "@type": "Place",
+                name: "Dynamic Mall",
+                address: {
+                  "@type": "PostalAddress",
+                  streetAddress: "2nd Floor, Room ML 96, Dynamic Mall",
+                  addressLocality: "Nairobi CBD",
+                  addressRegion: "Nairobi",
+                  postalCode: "00100",
+                  addressCountry: "KE",
+                },
+              },
+            }),
+          }}
+        />
+        <script
               name: "Kallittos Fashions",
               description: "Curated thrift & brand-new mom jeans, wide-leg denim, and vintage jackets. Style meets sustainability in Nairobi, Kenya.",
               url: "https://kallittofashions.com",
