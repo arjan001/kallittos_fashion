@@ -17,6 +17,17 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Shop Thrift Jeans & Denim | Kallittos Fashions Kenya",
     description: "Best curated thrift & new denim in Kenya. Mom jeans, skinny, boyfriend, shorts & more. Delivered across Nairobi & Kenya.",
+    url: "https://kallittofashions.com/shop",
+    type: "website",
+    siteName: "Kallittos Fashions",
+    locale: "en_KE",
+    images: [{ url: "https://kallittofashions.com/logo-kf.png", width: 512, height: 512, alt: "Kallittos Fashions Shop" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Shop Thrift Jeans & Denim | Kallittos Fashions Kenya",
+    description: "Best curated thrift & new denim in Kenya. Delivered across Nairobi & Kenya.",
+    images: ["https://kallittofashions.com/logo-kf.png"],
   },
 }
 

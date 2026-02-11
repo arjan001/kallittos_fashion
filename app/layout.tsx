@@ -190,6 +190,57 @@ export default function RootLayout({
             }),
           }}
         />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              name: "Kallittos Fashions",
+              alternateName: ["Kallittos", "Kallitto Fashions", "KF Denim"],
+              url: "https://kallittofashions.com",
+              description: "Curated thrift & brand-new denim delivered across Kenya. Mom jeans, skinny jeans, denim jackets & more.",
+              publisher: {
+                "@type": "Organization",
+                name: "Kallittos Fashions",
+                logo: {
+                  "@type": "ImageObject",
+                  url: "https://kallittofashions.com/logo-kf.png",
+                },
+              },
+              potentialAction: {
+                "@type": "SearchAction",
+                target: {
+                  "@type": "EntryPoint",
+                  urlTemplate: "https://kallittofashions.com/shop?search={search_term_string}",
+                },
+                "query-input": "required name=search_term_string",
+              },
+            }),
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "ItemList",
+              name: "Kallittos Fashions Site Pages",
+              itemListElement: [
+                { "@type": "SiteNavigationElement", position: 1, name: "Home", url: "https://kallittofashions.com" },
+                { "@type": "SiteNavigationElement", position: 2, name: "Shop All Denim", url: "https://kallittofashions.com/shop" },
+                { "@type": "SiteNavigationElement", position: 3, name: "New Arrivals", url: "https://kallittofashions.com/shop?filter=new" },
+                { "@type": "SiteNavigationElement", position: 4, name: "Special Offers", url: "https://kallittofashions.com/shop?filter=offers" },
+                { "@type": "SiteNavigationElement", position: 5, name: "Delivery & Shipping", url: "https://kallittofashions.com/delivery" },
+                { "@type": "SiteNavigationElement", position: 6, name: "Track My Order", url: "https://kallittofashions.com/track-order" },
+                { "@type": "SiteNavigationElement", position: 7, name: "Wishlist", url: "https://kallittofashions.com/wishlist" },
+                { "@type": "SiteNavigationElement", position: 8, name: "Privacy Policy", url: "https://kallittofashions.com/privacy-policy" },
+                { "@type": "SiteNavigationElement", position: 9, name: "Terms of Service", url: "https://kallittofashions.com/terms-of-service" },
+                { "@type": "SiteNavigationElement", position: 10, name: "Refund Policy", url: "https://kallittofashions.com/refund-policy" },
+              ],
+            }),
+          }}
+        />
       </head>
       <body className="font-sans antialiased">
         <WishlistProvider><CartProvider>{children}</CartProvider></WishlistProvider>

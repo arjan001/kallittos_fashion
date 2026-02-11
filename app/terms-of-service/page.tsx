@@ -15,6 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: p?.meta_title || "Terms of Service | Kallittos Fashions",
     description: p?.meta_description || "Read the terms and conditions governing your use of the Kallittos Fashions website.",
+    alternates: { canonical: "https://kallittofashions.com/terms-of-service" },
     keywords: p?.meta_keywords?.split(",").map((k: string) => k.trim()) || ["terms of service", "kallittos fashions"],
     authors: [
       { name: "Kallittos Fashions", url: "https://kallittofashions.com" },

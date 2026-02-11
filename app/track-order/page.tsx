@@ -17,6 +17,16 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Track My Order | Kallittos Fashions",
     description: "Track your thrift denim order in real time. Enter your order number or phone to check delivery status.",
+    url: "https://kallittofashions.com/track-order",
+    type: "website",
+    siteName: "Kallittos Fashions",
+    locale: "en_KE",
+    images: [{ url: "https://kallittofashions.com/logo-kf.png", width: 512, height: 512, alt: "Kallittos Fashions Order Tracking" }],
+  },
+  twitter: {
+    card: "summary",
+    title: "Track My Order | Kallittos Fashions",
+    description: "Track your denim delivery in real time across Kenya.",
   },
 }
 

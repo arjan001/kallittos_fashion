@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
         is_on_offer: body.isOnOffer || false,
         offer_percentage: body.offerPercentage || 0,
         in_stock: body.inStock ?? true,
+        collection: body.collection || "unisex",
         is_featured: false,
         condition: "new",
       })
@@ -108,6 +109,7 @@ export async function PUT(request: NextRequest) {
         is_on_offer: body.isOnOffer || false,
         offer_percentage: body.offerPercentage || 0,
         in_stock: body.inStock ?? true,
+        collection: body.collection || "unisex",
       })
       .eq("id", body.id)
 

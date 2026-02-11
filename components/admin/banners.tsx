@@ -15,6 +15,18 @@ import useSWR from "swr"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
+interface HeroBannerData {
+  id: string
+  title: string
+  subtitle: string | null
+  collection: string
+  banner_image: string | null
+  link_url: string
+  button_text: string
+  is_active: boolean
+  sort_order: number
+}
+
 interface BannerData {
   id: string
   title: string
@@ -45,6 +57,28 @@ export function AdminBanners() {
   const banners = data?.banners || []
   const navOffers = data?.navbarOffers || []
   const popupOffers = data?.popupOffers || []
+
+  // Hero banners
+  const { data: heroBanners = [], mutate: mutateHero } = useSWR<HeroBannerData[]>("/api/admin/hero-banners", fetcher)
+  const [heroModal, setHeroModal] = useState(false)
+  const [editHero, setEditHero] = useState<HeroBannerData | null>(null)
+  const [heroForm, setHeroForm] = useState({ title: "", subtitle: "", collection: "men", bannerImage: "", linkUrl: "/shop/men", buttonText: "Shop Now" })
+
+  const openHeroNew = () => { setEditHero(null); setHeroForm({ title: "", subtitle: "", collection: "men", bannerImage: "", linkUrl: "/shop/men", buttonText: "Shop Now" }); setHeroModal(true) }
+  const openHeroEdit = (h: HeroBannerData) => { setEditHero(h); setHeroForm({ title: h.title, subtitle: h.subtitle || "", collection: h.collection, bannerImage: h.banner_image || "", linkUrl: h.link_url, buttonText: h.button_text || "Shop Now" }); setHeroModal(true) }
+  const saveHero = async () => {
+    await fetch("/api/admin/hero-banners", {
+      method: editHero ? "PUT" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: editHero?.id, ...heroForm, isActive: editHero?.is_active ?? true, sortOrder: editHero?.sort_order ?? heroBanners.length }),
+    })
+    mutateHero(); setHeroModal(false)
+  }
+  const deleteHero = async (id: string) => { await fetch(`/api/admin/hero-banners?id=${id}`, { method: "DELETE" }); mutateHero() }
+  const toggleHero = async (h: HeroBannerData) => {
+    await fetch("/api/admin/hero-banners", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: h.id, title: h.title, subtitle: h.subtitle, collection: h.collection, bannerImage: h.banner_image, linkUrl: h.link_url, buttonText: h.button_text, isActive: !h.is_active, sortOrder: h.sort_order }) })
+    mutateHero()
+  }
 
   // Banner modal
   const [bannerModal, setBannerModal] = useState(false)
@@ -108,12 +142,37 @@ export function AdminBanners() {
           <p className="text-sm text-muted-foreground mt-1">Manage homepage banners, navbar running offers, and popup offers.</p>
         </div>
 
-        <Tabs defaultValue="banners">
+        <Tabs defaultValue="hero">
           <TabsList className="bg-secondary">
+            <TabsTrigger value="hero">Hero Banners ({heroBanners.length})</TabsTrigger>
             <TabsTrigger value="banners">Banners ({banners.length})</TabsTrigger>
             <TabsTrigger value="navbar">Navbar Offers ({navOffers.length})</TabsTrigger>
             <TabsTrigger value="popup">Popup Offers ({popupOffers.length})</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="hero" className="mt-6 space-y-4">
+            <div className="flex justify-end">
+              <Button onClick={openHeroNew} className="bg-foreground text-background hover:bg-foreground/90"><Plus className="h-4 w-4 mr-2" /> Add Hero Banner</Button>
+            </div>
+            {heroBanners.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">No hero banners yet. Add your first collection banner above.</p>}
+            {heroBanners.map((h) => (
+              <div key={h.id} className="flex items-center gap-4 border border-border rounded-sm p-4">
+                <div className="relative w-32 h-20 bg-secondary rounded-sm overflow-hidden flex-shrink-0">
+                  <Image src={h.banner_image || `/banners/${h.collection}-collection.jpg`} alt={h.title} fill className="object-cover" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-semibold truncate">{h.title}</h3>
+                  <p className="text-xs text-muted-foreground">Collection: <span className="capitalize font-medium text-foreground">{h.collection}</span></p>
+                  <p className="text-xs text-muted-foreground">Link: {h.link_url} -- Button: {h.button_text}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch checked={h.is_active} onCheckedChange={() => toggleHero(h)} />
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openHeroEdit(h)}><Pencil className="h-3.5 w-3.5" /></Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteHero(h.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                </div>
+              </div>
+            ))}
+          </TabsContent>
 
           <TabsContent value="banners" className="mt-6 space-y-4">
             <div className="flex justify-end">
@@ -230,6 +289,33 @@ export function AdminBanners() {
             <div className="flex justify-end gap-3 pt-4 border-t border-border">
               <Button variant="outline" onClick={() => setPopupModal(false)} className="bg-transparent">Cancel</Button>
               <Button onClick={savePopup} disabled={!popupForm.title} className="bg-foreground text-background hover:bg-foreground/90">{editPopup ? "Update" : "Add"} Offer</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {/* Hero Banner Modal */}
+      <Dialog open={heroModal} onOpenChange={setHeroModal}>
+        <DialogContent className="max-w-md bg-background text-foreground">
+          <DialogHeader><DialogTitle className="font-serif">{editHero ? "Edit" : "Add"} Hero Banner</DialogTitle></DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div><Label className="text-sm font-medium mb-1.5 block">Title *</Label><Input value={heroForm.title} onChange={(e) => setHeroForm({ ...heroForm, title: e.target.value })} placeholder="Men's Collection" /></div>
+            <div><Label className="text-sm font-medium mb-1.5 block">Subtitle</Label><Input value={heroForm.subtitle} onChange={(e) => setHeroForm({ ...heroForm, subtitle: e.target.value })} placeholder="Rugged denim for the modern man" /></div>
+            <div>
+              <Label className="text-sm font-medium mb-1.5 block">Collection *</Label>
+              <div className="flex gap-2">
+                {["men", "women", "kids"].map((c) => (
+                  <Button key={c} variant={heroForm.collection === c ? "default" : "outline"} size="sm" onClick={() => setHeroForm({ ...heroForm, collection: c, linkUrl: `/shop/${c}` })} className={heroForm.collection === c ? "bg-foreground text-background capitalize" : "bg-transparent capitalize"}>{c}</Button>
+                ))}
+              </div>
+            </div>
+            <div><Label className="text-sm font-medium mb-1.5 block">Banner Image URL</Label><Input value={heroForm.bannerImage} onChange={(e) => setHeroForm({ ...heroForm, bannerImage: e.target.value })} placeholder="Leave empty for default collection image" /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label className="text-sm font-medium mb-1.5 block">Link URL</Label><Input value={heroForm.linkUrl} onChange={(e) => setHeroForm({ ...heroForm, linkUrl: e.target.value })} /></div>
+              <div><Label className="text-sm font-medium mb-1.5 block">Button Text</Label><Input value={heroForm.buttonText} onChange={(e) => setHeroForm({ ...heroForm, buttonText: e.target.value })} /></div>
+            </div>
+            <div className="flex justify-end gap-3 pt-4 border-t border-border">
+              <Button variant="outline" onClick={() => setHeroModal(false)} className="bg-transparent">Cancel</Button>
+              <Button onClick={saveHero} disabled={!heroForm.title || !heroForm.collection} className="bg-foreground text-background hover:bg-foreground/90">{editHero ? "Update" : "Add"}</Button>
             </div>
           </div>
         </DialogContent>

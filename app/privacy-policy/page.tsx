@@ -15,6 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: p?.meta_title || "Privacy Policy | Kallittos Fashions",
     description: p?.meta_description || "Learn how Kallittos Fashions collects, uses, and protects your personal information.",
+    alternates: { canonical: "https://kallittofashions.com/privacy-policy" },
     keywords: p?.meta_keywords?.split(",").map((k: string) => k.trim()) || ["privacy policy", "kallittos fashions"],
     authors: [
       { name: "Kallittos Fashions", url: "https://kallittofashions.com" },
