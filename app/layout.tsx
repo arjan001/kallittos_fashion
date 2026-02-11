@@ -190,6 +190,11 @@ export default function RootLayout({
           }}
         />
         <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "LocalBusiness",
               name: "Kallittos Fashions",
               description: "Curated thrift & brand-new mom jeans, wide-leg denim, and vintage jackets. Style meets sustainability in Nairobi, Kenya.",
               url: "https://kallittofashions.com",
