@@ -4,6 +4,7 @@ import { Inter, Playfair_Display } from "next/font/google"
 import { CartProvider } from "@/lib/cart-context"
 import { WishlistProvider } from "@/lib/wishlist-context"
 import { Toaster } from "@/components/ui/sonner"
+import { PageViewTracker } from "@/components/page-view-tracker"
 import "./globals.css"
 
 const inter = Inter({
@@ -112,7 +113,8 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
       <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/favicon.jpg" type="image/jpeg" />
+            <link rel="apple-touch-icon" href="/favicon.jpg" />
         <meta name="google-site-verification" content="FY2n9Zc_Z1exsOdQJ4xsDTMW_P-UBehhQPI_Ana4nCg" />
         <meta name="format-detection" content="telephone=no" />
         <link rel="author" href="https://oneplusafrica.com/" />
@@ -168,6 +170,7 @@ export default function RootLayout({
       </head>
       <body className="font-sans antialiased">
         <WishlistProvider><CartProvider>{children}</CartProvider></WishlistProvider>
+        <PageViewTracker />
         <Toaster position="top-right" richColors closeButton />
       </body>
     </html>

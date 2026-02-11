@@ -3,7 +3,8 @@
 import { useState } from "react"
 import { AdminShell } from "./admin-shell"
 import { formatPrice } from "@/lib/format"
-import { TrendingUp, TrendingDown, Users, ShoppingBag, Eye, DollarSign, ArrowUpRight, ArrowDownRight, ChevronLeft, ChevronRight } from "lucide-react"
+import { TrendingUp, TrendingDown, Users, ShoppingBag, Eye, DollarSign, ArrowUpRight, ArrowDownRight, ChevronLeft, ChevronRight, Globe, Monitor, Smartphone, Tablet } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import useSWR from "swr"
 
@@ -18,28 +19,42 @@ interface Product {
   id: string; name: string; price: number; category: string
 }
 
+interface VisitorData {
+  totalViews: number; uniqueSessions: number; previousPeriodViews: number
+  topPages: { page: string; count: number }[]
+  viewsByDay: { date: string; count: number }[]
+  devices: { device: string; count: number; percentage: number }[]
+  browsers: { browser: string; count: number; percentage: number }[]
+  countries: { country: string; count: number; percentage: number }[]
+  referrers: { source: string; count: number }[]
+}
+
 export function AdminAnalytics() {
   const { data: orders = [] } = useSWR<Order[]>("/api/admin/orders", fetcher)
   const { data: products = [] } = useSWR<Product[]>("/api/products", fetcher)
+  const { data: visitors } = useSWR<VisitorData>("/api/admin/analytics?days=30", fetcher)
   const [prodPage, setProdPage] = useState(1)
   const [activityPage, setActivityPage] = useState(1)
 
-  // Compute live stats
-  const totalRevenue = orders.reduce((sum, o) => sum + (o.status !== "cancelled" ? o.total : 0), 0)
+  // Only confirmed orders count as sales (confirmed, dispatched, delivered)
+  const saleStatuses = ["confirmed", "dispatched", "delivered"]
+  const salesOrders = orders.filter((o) => saleStatuses.includes(o.status))
+  const totalRevenue = salesOrders.reduce((sum, o) => sum + o.total, 0)
   const totalOrders = orders.length
-  const deliveredOrders = orders.filter((o) => o.status === "delivered").length
+  const totalSales = salesOrders.length
+
+  const viewChange = visitors ? Math.round(((visitors.totalViews - visitors.previousPeriodViews) / Math.max(visitors.previousPeriodViews, 1)) * 100) : 0
 
   const stats = [
-    { label: "Total Revenue", value: formatPrice(totalRevenue), change: `${deliveredOrders} delivered`, up: true, icon: DollarSign },
+    { label: "Sales Revenue", value: formatPrice(totalRevenue), change: `${totalSales} confirmed sales`, up: totalSales > 0, icon: DollarSign },
     { label: "Total Orders", value: totalOrders.toString(), change: `${orders.filter(o => o.status === "pending").length} pending`, up: true, icon: ShoppingBag },
-    { label: "Total Products", value: products.length.toString(), change: "Live from DB", up: true, icon: Users },
-    { label: "Avg Order Value", value: totalOrders > 0 ? formatPrice(Math.round(totalRevenue / totalOrders)) : formatPrice(0), change: "Per order", up: true, icon: TrendingUp },
+    { label: "Page Views", value: visitors?.totalViews.toString() || "0", change: `${viewChange >= 0 ? "+" : ""}${viewChange}% vs prev`, up: viewChange >= 0, icon: Eye },
+    { label: "Unique Visitors", value: visitors?.uniqueSessions.toString() || "0", change: `${products.length} products live`, up: true, icon: Users },
   ]
 
-  // Revenue by month from actual orders
+  // Revenue by month from confirmed sales only
   const monthMap: Record<string, number> = {}
-  orders.forEach((o) => {
-    if (o.status === "cancelled") return
+  salesOrders.forEach((o) => {
     const d = new Date(o.date)
     const key = d.toLocaleString("default", { month: "short", year: "2-digit" })
     monthMap[key] = (monthMap[key] || 0) + o.total
@@ -48,10 +63,9 @@ export function AdminAnalytics() {
   if (revenueByMonth.length === 0) revenueByMonth.push({ month: "Now", value: 0 })
   const maxRevenue = Math.max(...revenueByMonth.map((r) => r.value), 1)
 
-  // Top products from order items
+  // Top products from confirmed sales only
   const productSales: Record<string, { name: string; sold: number; revenue: number }> = {}
-  orders.forEach((o) => {
-    if (o.status === "cancelled") return
+  salesOrders.forEach((o) => {
     o.items.forEach((item) => {
       const key = item.name
       if (!productSales[key]) productSales[key] = { name: key, sold: 0, revenue: 0 }
@@ -109,6 +123,14 @@ export function AdminAnalytics() {
             </div>
           ))}
         </div>
+
+        <Tabs defaultValue="sales">
+          <TabsList className="bg-secondary flex-wrap h-auto gap-1 p-1">
+            <TabsTrigger value="sales">Sales & Orders</TabsTrigger>
+            <TabsTrigger value="traffic">Website Traffic</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="sales" className="mt-6 space-y-6">
 
         {/* Revenue Chart (simple bar chart) */}
         <div className="border border-border rounded-sm p-6">
@@ -209,6 +231,143 @@ export function AdminAnalytics() {
             </div>
           )}
         </div>
+
+          </TabsContent>
+
+          <TabsContent value="traffic" className="mt-6 space-y-6">
+            {/* Daily traffic chart */}
+            <div className="border border-border rounded-sm p-6">
+              <h2 className="text-sm font-semibold mb-6">Daily Page Views (Last 30 Days)</h2>
+              <div className="flex items-end gap-1 h-48 overflow-x-auto">
+                {(visitors?.viewsByDay || []).length === 0 ? (
+                  <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">No traffic data yet. Views will appear as visitors browse your site.</div>
+                ) : (visitors?.viewsByDay || []).map((d) => {
+                  const maxViews = Math.max(...(visitors?.viewsByDay || []).map((v) => v.count), 1)
+                  return (
+                    <div key={d.date} className="flex-1 min-w-[16px] flex flex-col items-center gap-1">
+                      <span className="text-[9px] text-muted-foreground">{d.count}</span>
+                      <div className="w-full bg-foreground rounded-t-sm transition-all" style={{ height: `${(d.count / maxViews) * 100}%`, minHeight: d.count > 0 ? "4px" : "0" }} />
+                      <span className="text-[8px] text-muted-foreground rotate-[-45deg] origin-top-left whitespace-nowrap">{new Date(d.date).toLocaleDateString("en", { month: "short", day: "numeric" })}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Top Pages */}
+              <div className="border border-border rounded-sm">
+                <div className="px-5 py-3 border-b border-border">
+                  <h2 className="text-sm font-semibold flex items-center gap-2"><Eye className="h-3.5 w-3.5" /> Top Pages</h2>
+                </div>
+                <div className="divide-y divide-border">
+                  {(visitors?.topPages || []).length === 0 ? (
+                    <div className="px-5 py-8 text-center text-sm text-muted-foreground">No page data yet</div>
+                  ) : (visitors?.topPages || []).map((p, i) => (
+                    <div key={p.page} className="flex items-center justify-between px-5 py-3">
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-muted-foreground w-5">{i + 1}.</span>
+                        <span className="text-sm">{p.page}</span>
+                      </div>
+                      <span className="text-sm font-medium">{p.count} views</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Top Referrers */}
+              <div className="border border-border rounded-sm">
+                <div className="px-5 py-3 border-b border-border">
+                  <h2 className="text-sm font-semibold flex items-center gap-2"><Globe className="h-3.5 w-3.5" /> Traffic Sources</h2>
+                </div>
+                <div className="divide-y divide-border">
+                  {(visitors?.referrers || []).length === 0 ? (
+                    <div className="px-5 py-8 text-center text-sm text-muted-foreground">No referrer data yet</div>
+                  ) : (visitors?.referrers || []).map((r, i) => (
+                    <div key={r.source} className="flex items-center justify-between px-5 py-3">
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-muted-foreground w-5">{i + 1}.</span>
+                        <span className="text-sm">{r.source}</span>
+                      </div>
+                      <span className="text-sm font-medium">{r.count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Devices */}
+              <div className="border border-border rounded-sm">
+                <div className="px-5 py-3 border-b border-border">
+                  <h2 className="text-sm font-semibold">Devices</h2>
+                </div>
+                <div className="p-5 space-y-3">
+                  {(visitors?.devices || []).length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-3">No data</p>
+                  ) : (visitors?.devices || []).map((d) => {
+                    const DevIcon = d.device === "mobile" ? Smartphone : d.device === "tablet" ? Tablet : Monitor
+                    return (
+                      <div key={d.device}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm flex items-center gap-2 capitalize"><DevIcon className="h-3.5 w-3.5 text-muted-foreground" /> {d.device}</span>
+                          <span className="text-xs text-muted-foreground">{d.percentage}%</span>
+                        </div>
+                        <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                          <div className="h-full bg-foreground rounded-full" style={{ width: `${d.percentage}%` }} />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Browsers */}
+              <div className="border border-border rounded-sm">
+                <div className="px-5 py-3 border-b border-border">
+                  <h2 className="text-sm font-semibold">Browsers</h2>
+                </div>
+                <div className="p-5 space-y-3">
+                  {(visitors?.browsers || []).length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-3">No data</p>
+                  ) : (visitors?.browsers || []).map((b) => (
+                    <div key={b.browser}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm">{b.browser}</span>
+                        <span className="text-xs text-muted-foreground">{b.percentage}%</span>
+                      </div>
+                      <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                        <div className="h-full bg-foreground rounded-full" style={{ width: `${b.percentage}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Countries */}
+              <div className="border border-border rounded-sm">
+                <div className="px-5 py-3 border-b border-border">
+                  <h2 className="text-sm font-semibold">Countries</h2>
+                </div>
+                <div className="p-5 space-y-3">
+                  {(visitors?.countries || []).length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-3">No data</p>
+                  ) : (visitors?.countries || []).map((c) => (
+                    <div key={c.country}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm">{c.country}</span>
+                        <span className="text-xs text-muted-foreground">{c.percentage}%</span>
+                      </div>
+                      <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                        <div className="h-full bg-foreground rounded-full" style={{ width: `${c.percentage}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </AdminShell>
   )
