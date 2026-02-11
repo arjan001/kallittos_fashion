@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/admin"
+import { createAdminClient as createClient } from "@/lib/supabase/admin"
 import { NextRequest, NextResponse } from "next/server"
 import { UAParser } from "ua-parser-js"
 
