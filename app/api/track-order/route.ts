@@ -1,9 +1,14 @@
 import { createClient } from "@/lib/supabase/server"
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
+import { rateLimit, rateLimitResponse, sanitizePhoneSearch } from "@/lib/security"
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
+  // Rate limit: max 15 searches per minute per IP
+  const rl = rateLimit(request, { limit: 15, windowSeconds: 60 })
+  if (!rl.success) return rateLimitResponse()
+
   const { searchParams } = new URL(request.url)
-  const orderNumber = searchParams.get("order_number")?.trim()
+  const orderNumber = searchParams.get("order_number")?.trim().replace(/[^a-zA-Z0-9\-]/g, "").slice(0, 30)
   const phone = searchParams.get("phone")?.trim()
 
   if (!orderNumber && !phone) {
@@ -20,8 +25,11 @@ export async function GET(request: Request) {
   if (orderNumber) {
     query = query.eq("order_number", orderNumber)
   } else if (phone) {
-    // Search by phone (strip leading 0 or +254 for flexible matching)
-    const cleanPhone = phone.replace(/^(\+254|254|0)/, "")
+    // Sanitize phone to prevent wildcard injection
+    const cleanPhone = sanitizePhoneSearch(phone).replace(/^(\+?254|0)/, "")
+    if (cleanPhone.length < 6) {
+      return NextResponse.json({ error: "Phone number too short" }, { status: 400 })
+    }
     query = query.or(`customer_phone.ilike.%${cleanPhone}%`)
   }
 

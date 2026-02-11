@@ -1,7 +1,16 @@
 import { createClient } from "@/lib/supabase/server"
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
+import { requireAuth, rateLimit, rateLimitResponse, validateUpload } from "@/lib/security"
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  // Rate limit: max 10 uploads per minute
+  const rl = rateLimit(request, { limit: 10, windowSeconds: 60 })
+  if (!rl.success) return rateLimitResponse()
+
+  // Require authentication
+  const auth = await requireAuth()
+  if (!auth.authenticated) return auth.response!
+
   try {
     const supabase = await createClient()
 
@@ -13,9 +22,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 })
     }
 
-    // Generate unique filename
-    const ext = file.name.split(".").pop() || "jpg"
-    const folder = productSlug || "general"
+    // Validate file type and size (max 5MB, images only)
+    const validation = validateUpload(file, 5)
+    if (!validation.valid) {
+      return NextResponse.json({ error: validation.error }, { status: 400 })
+    }
+
+    // Sanitize folder name
+    const folder = (productSlug || "general").replace(/[^a-z0-9\-]/gi, "").slice(0, 100)
+    const ext = file.name.split(".").pop()?.replace(/[^a-z0-9]/gi, "") || "jpg"
     const filename = `${folder}/${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`
 
     const buffer = Buffer.from(await file.arrayBuffer())
@@ -32,7 +47,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    // Get public URL
     const { data: urlData } = supabase.storage
       .from("products")
       .getPublicUrl(filename)
