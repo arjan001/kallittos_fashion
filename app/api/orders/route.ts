@@ -1,6 +1,7 @@
 import { createOrder } from "@/lib/supabase-data"
 import { NextRequest, NextResponse } from "next/server"
 import { rateLimit, rateLimitResponse, sanitize, isValidPhone, isValidEmail } from "@/lib/security"
+import { sendOrderConfirmationEmail } from "@/lib/email"
 
 export async function POST(request: NextRequest) {
   // Rate limit: max 5 orders per minute per IP
@@ -76,6 +77,29 @@ export async function POST(request: NextRequest) {
       mpesaMessage,
       items: sanitizedItems,
     })
+
+    // Fire-and-forget: send order confirmation email (don't block response)
+    if (customerEmail) {
+      sendOrderConfirmationEmail({
+        orderNumber: result.orderNumber,
+        customerName,
+        customerEmail,
+        customerPhone,
+        items: sanitizedItems.map((item: { name: string; quantity: number; price: number; variation?: string }) => ({
+          productName: item.name,
+          quantity: item.quantity,
+          unitPrice: item.price,
+          totalPrice: item.price * item.quantity,
+          variation: item.variation,
+        })),
+        subtotal,
+        deliveryFee,
+        total,
+        deliveryAddress,
+        paymentMethod,
+        mpesaCode,
+      }).catch(() => {})
+    }
 
     return NextResponse.json(result)
   } catch (error) {
