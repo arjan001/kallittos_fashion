@@ -178,7 +178,7 @@ export function CheckoutPage() {
       <div className="min-h-screen flex flex-col">
         <TopBar />
         <Navbar />
-        <main className="flex-1 flex items-center justify-center py-12">
+        <main className="flex-1 flex items-center justify-center py-24 md:py-32">
           <div className="max-w-lg w-full mx-auto px-4">
             {/* Success animation */}
             <div className="text-center">
@@ -233,6 +233,22 @@ export function CheckoutPage() {
                 </div>
               )}
 
+              {!isMpesa && !isWhatsApp && (
+                <div className="bg-secondary/50 border-b border-border px-5 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+                      <CheckCircle className="h-5 w-5 text-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">Order Received</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        We will contact you to confirm delivery details.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="px-5 py-4 space-y-3">
                 <div className="flex items-center gap-3">
                   <Package className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -253,15 +269,15 @@ export function CheckoutPage() {
             </div>
 
             {/* Action buttons */}
-            <div className="mt-8 flex flex-col sm:flex-row gap-3">
+            <div className="mt-10 flex flex-col gap-3">
               <Button
                 onClick={() => router.push(trackUrl)}
-                className="flex-1 h-12 bg-foreground text-background hover:bg-foreground/90 font-semibold"
+                className="w-full h-12 bg-foreground text-background hover:bg-foreground/90 font-semibold"
               >
                 <Truck className="h-4 w-4 mr-2" />
                 Track My Order
               </Button>
-              <Link href="/shop" className="flex-1">
+              <Link href="/shop" className="w-full">
                 <Button variant="outline" className="w-full h-12 bg-transparent font-medium">
                   Continue Shopping
                 </Button>
