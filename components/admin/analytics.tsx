@@ -36,24 +36,25 @@ export function AdminAnalytics() {
   const [prodPage, setProdPage] = useState(1)
   const [activityPage, setActivityPage] = useState(1)
 
-  // Compute live stats
-  const totalRevenue = orders.reduce((sum, o) => sum + (o.status !== "cancelled" ? o.total : 0), 0)
+  // Only confirmed orders count as sales (confirmed, dispatched, delivered)
+  const saleStatuses = ["confirmed", "dispatched", "delivered"]
+  const salesOrders = orders.filter((o) => saleStatuses.includes(o.status))
+  const totalRevenue = salesOrders.reduce((sum, o) => sum + o.total, 0)
   const totalOrders = orders.length
-  const deliveredOrders = orders.filter((o) => o.status === "delivered").length
+  const totalSales = salesOrders.length
 
   const viewChange = visitors ? Math.round(((visitors.totalViews - visitors.previousPeriodViews) / Math.max(visitors.previousPeriodViews, 1)) * 100) : 0
 
   const stats = [
-    { label: "Total Revenue", value: formatPrice(totalRevenue), change: `${deliveredOrders} delivered`, up: true, icon: DollarSign },
+    { label: "Sales Revenue", value: formatPrice(totalRevenue), change: `${totalSales} confirmed sales`, up: totalSales > 0, icon: DollarSign },
     { label: "Total Orders", value: totalOrders.toString(), change: `${orders.filter(o => o.status === "pending").length} pending`, up: true, icon: ShoppingBag },
     { label: "Page Views", value: visitors?.totalViews.toString() || "0", change: `${viewChange >= 0 ? "+" : ""}${viewChange}% vs prev`, up: viewChange >= 0, icon: Eye },
     { label: "Unique Visitors", value: visitors?.uniqueSessions.toString() || "0", change: `${products.length} products live`, up: true, icon: Users },
   ]
 
-  // Revenue by month from actual orders
+  // Revenue by month from confirmed sales only
   const monthMap: Record<string, number> = {}
-  orders.forEach((o) => {
-    if (o.status === "cancelled") return
+  salesOrders.forEach((o) => {
     const d = new Date(o.date)
     const key = d.toLocaleString("default", { month: "short", year: "2-digit" })
     monthMap[key] = (monthMap[key] || 0) + o.total
@@ -62,10 +63,9 @@ export function AdminAnalytics() {
   if (revenueByMonth.length === 0) revenueByMonth.push({ month: "Now", value: 0 })
   const maxRevenue = Math.max(...revenueByMonth.map((r) => r.value), 1)
 
-  // Top products from order items
+  // Top products from confirmed sales only
   const productSales: Record<string, { name: string; sold: number; revenue: number }> = {}
-  orders.forEach((o) => {
-    if (o.status === "cancelled") return
+  salesOrders.forEach((o) => {
     o.items.forEach((item) => {
       const key = item.name
       if (!productSales[key]) productSales[key] = { name: key, sold: 0, revenue: 0 }
