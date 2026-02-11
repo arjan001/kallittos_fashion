@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import type { Metadata } from "next"
 import { TopBar } from "@/components/store/top-bar"
 import { Navbar } from "@/components/store/navbar"
@@ -33,7 +34,9 @@ export default function TrackOrderPage() {
               Enter your order number or the phone number you used when placing your order to check the status.
             </p>
           </div>
-          <TrackOrderForm />
+          <Suspense fallback={<div className="text-center text-sm text-muted-foreground py-8">Loading...</div>}>
+            <TrackOrderForm />
+          </Suspense>
         </div>
       </main>
       <Footer />
