@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Save, Globe, Palette, FileText } from "lucide-react"
+import { Save, Globe, Palette, FileText, Search, Plus, Pencil, Trash2, X, Check, ExternalLink, Eye, EyeOff } from "lucide-react"
 import { AdminShell } from "./admin-shell"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -136,14 +136,7 @@ export function AdminSettings() {
           </TabsContent>
 
           <TabsContent value="seo" className="mt-6">
-            <div className="max-w-2xl space-y-6">
-              <div className="border border-border rounded-sm p-6 space-y-5">
-                <h3 className="text-sm font-semibold uppercase tracking-wider flex items-center gap-2"><Globe className="h-4 w-4" /> Meta Tags</h3>
-                <div><Label className="text-sm font-medium mb-1.5 block">Site Title</Label><Input value={form.metaTitle} onChange={(e) => setForm({ ...form, metaTitle: e.target.value })} /></div>
-                <div><Label className="text-sm font-medium mb-1.5 block">Meta Description</Label><Textarea value={form.metaDescription} onChange={(e) => setForm({ ...form, metaDescription: e.target.value })} rows={3} /></div>
-                <div><Label className="text-sm font-medium mb-1.5 block">Meta Keywords</Label><Input value={form.metaKeywords} onChange={(e) => setForm({ ...form, metaKeywords: e.target.value })} /></div>
-              </div>
-            </div>
+            <SeoManager />
           </TabsContent>
 
           <TabsContent value="theme" className="mt-6">
@@ -223,5 +216,232 @@ export function AdminSettings() {
         </Tabs>
       </div>
     </AdminShell>
+  )
+}
+
+// ── Full SEO Manager ──────────────────────────────────────────────
+
+interface SeoPage {
+  id: string; page_path: string; page_title: string; meta_title: string
+  meta_description: string; meta_keywords: string; og_title: string
+  og_description: string; og_image: string; canonical_url: string
+  no_index: boolean; no_follow: boolean; structured_data: unknown
+  created_at: string; updated_at: string
+}
+
+const emptySeo: Partial<SeoPage> = {
+  page_path: "", page_title: "", meta_title: "", meta_description: "",
+  meta_keywords: "", og_title: "", og_description: "", og_image: "",
+  canonical_url: "", no_index: false, no_follow: false,
+}
+
+function SeoManager() {
+  const { data: pages = [], mutate } = useSWR<SeoPage[]>("/api/admin/seo", fetcher)
+  const [editing, setEditing] = useState<Partial<SeoPage> | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [search, setSearch] = useState("")
+
+  const filtered = pages.filter((p) =>
+    p.page_path.toLowerCase().includes(search.toLowerCase()) ||
+    (p.page_title || "").toLowerCase().includes(search.toLowerCase())
+  )
+
+  const handleSave = async () => {
+    if (!editing) return
+    setSaving(true)
+    await fetch("/api/admin/seo", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(editing),
+    })
+    mutate()
+    setSaving(false)
+    setEditing(null)
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this SEO entry?")) return
+    await fetch("/api/admin/seo", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    })
+    mutate()
+  }
+
+  const titleLen = (editing?.meta_title || "").length
+  const descLen = (editing?.meta_description || "").length
+
+  if (editing) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditing(null)}>
+              <X className="h-4 w-4" />
+            </Button>
+            <div>
+              <h3 className="text-lg font-semibold">{editing.id ? "Edit" : "New"} SEO Entry</h3>
+              <p className="text-xs text-muted-foreground">{editing.page_path || "Set the page path"}</p>
+            </div>
+          </div>
+          <Button onClick={handleSave} disabled={saving || !editing.page_path} className="bg-foreground text-background hover:bg-foreground/90">
+            <Check className="h-4 w-4 mr-2" />
+            {saving ? "Saving..." : "Save SEO"}
+          </Button>
+        </div>
+
+        {/* Page path */}
+        <div className="border border-border rounded-sm p-5 space-y-4">
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Page</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label className="text-sm font-medium mb-1.5 block">Page Path</Label>
+              <Input value={editing.page_path || ""} onChange={(e) => setEditing({ ...editing, page_path: e.target.value })} placeholder="e.g. / or /shop" />
+            </div>
+            <div>
+              <Label className="text-sm font-medium mb-1.5 block">Page Label</Label>
+              <Input value={editing.page_title || ""} onChange={(e) => setEditing({ ...editing, page_title: e.target.value })} placeholder="e.g. Home, Shop" />
+            </div>
+          </div>
+        </div>
+
+        {/* Meta tags with live character counters */}
+        <div className="border border-border rounded-sm p-5 space-y-4">
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+            <Search className="h-3.5 w-3.5" /> Meta Tags
+          </h4>
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <Label className="text-sm font-medium">Meta Title</Label>
+              <span className={`text-xs ${titleLen > 60 ? "text-destructive" : titleLen > 50 ? "text-amber-500" : "text-muted-foreground"}`}>
+                {titleLen}/60
+              </span>
+            </div>
+            <Input value={editing.meta_title || ""} onChange={(e) => setEditing({ ...editing, meta_title: e.target.value })} placeholder="Page title for search engines" />
+          </div>
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <Label className="text-sm font-medium">Meta Description</Label>
+              <span className={`text-xs ${descLen > 160 ? "text-destructive" : descLen > 140 ? "text-amber-500" : "text-muted-foreground"}`}>
+                {descLen}/160
+              </span>
+            </div>
+            <Textarea value={editing.meta_description || ""} onChange={(e) => setEditing({ ...editing, meta_description: e.target.value })} rows={3} placeholder="Description shown in search results" />
+          </div>
+          <div>
+            <Label className="text-sm font-medium mb-1.5 block">Meta Keywords</Label>
+            <Textarea value={editing.meta_keywords || ""} onChange={(e) => setEditing({ ...editing, meta_keywords: e.target.value })} rows={2} placeholder="Comma-separated keywords" />
+          </div>
+        </div>
+
+        {/* Google preview */}
+        <div className="border border-border rounded-sm p-5 space-y-3">
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+            <Eye className="h-3.5 w-3.5" /> Google Search Preview
+          </h4>
+          <div className="bg-secondary/30 rounded-sm p-4 space-y-1">
+            <p className="text-sm text-blue-600 font-medium truncate">{editing.meta_title || editing.page_title || "Page Title"}</p>
+            <p className="text-xs text-green-700">{"https://kallittofashions.com"}{editing.page_path || "/"}</p>
+            <p className="text-xs text-muted-foreground line-clamp-2">{editing.meta_description || "No description set..."}</p>
+          </div>
+        </div>
+
+        {/* Open Graph */}
+        <div className="border border-border rounded-sm p-5 space-y-4">
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+            <ExternalLink className="h-3.5 w-3.5" /> Open Graph (Social Sharing)
+          </h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label className="text-sm font-medium mb-1.5 block">OG Title</Label>
+              <Input value={editing.og_title || ""} onChange={(e) => setEditing({ ...editing, og_title: e.target.value })} placeholder="Falls back to Meta Title" />
+            </div>
+            <div>
+              <Label className="text-sm font-medium mb-1.5 block">OG Image URL</Label>
+              <Input value={editing.og_image || ""} onChange={(e) => setEditing({ ...editing, og_image: e.target.value })} placeholder="1200x630px recommended" />
+            </div>
+          </div>
+          <div>
+            <Label className="text-sm font-medium mb-1.5 block">OG Description</Label>
+            <Textarea value={editing.og_description || ""} onChange={(e) => setEditing({ ...editing, og_description: e.target.value })} rows={2} placeholder="Falls back to Meta Description" />
+          </div>
+        </div>
+
+        {/* Advanced */}
+        <div className="border border-border rounded-sm p-5 space-y-4">
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Advanced</h4>
+          <div>
+            <Label className="text-sm font-medium mb-1.5 block">Canonical URL</Label>
+            <Input value={editing.canonical_url || ""} onChange={(e) => setEditing({ ...editing, canonical_url: e.target.value })} placeholder="Override canonical URL (optional)" />
+          </div>
+          <div className="flex flex-col gap-3 pt-1">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium flex items-center gap-2"><EyeOff className="h-3.5 w-3.5" /> No Index</p>
+                <p className="text-xs text-muted-foreground">Hide this page from search engine indexing</p>
+              </div>
+              <Switch checked={editing.no_index ?? false} onCheckedChange={(checked) => setEditing({ ...editing, no_index: checked })} />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">No Follow</p>
+                <p className="text-xs text-muted-foreground">Tell search engines not to follow links on this page</p>
+              </div>
+              <Switch checked={editing.no_follow ?? false} onCheckedChange={(checked) => setEditing({ ...editing, no_follow: checked })} />
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold flex items-center gap-2"><Globe className="h-4 w-4" /> SEO Manager</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Manage meta tags, descriptions, Open Graph, and indexing for each page.</p>
+        </div>
+        <Button onClick={() => setEditing({ ...emptySeo })} className="bg-foreground text-background hover:bg-foreground/90">
+          <Plus className="h-4 w-4 mr-2" /> Add Page
+        </Button>
+      </div>
+
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" placeholder="Search pages..." />
+      </div>
+
+      <div className="border border-border rounded-sm divide-y divide-border">
+        {filtered.length === 0 ? (
+          <div className="px-5 py-10 text-center text-sm text-muted-foreground">No SEO entries found</div>
+        ) : filtered.map((page) => (
+          <div key={page.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-secondary/20 transition-colors">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium">{page.page_title || page.page_path}</p>
+                {page.no_index && <span className="text-[10px] px-1.5 py-0.5 bg-destructive/10 text-destructive rounded">noindex</span>}
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">{page.page_path}</p>
+              {page.meta_title && (
+                <p className="text-xs text-blue-600 mt-1 truncate">{page.meta_title}</p>
+              )}
+              {page.meta_description && (
+                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{page.meta_description}</p>
+              )}
+            </div>
+            <div className="flex items-center gap-1 flex-shrink-0 ml-4">
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditing(page)}>
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(page.id)}>
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }

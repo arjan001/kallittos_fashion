@@ -4,6 +4,7 @@ import { Inter, Playfair_Display } from "next/font/google"
 import { CartProvider } from "@/lib/cart-context"
 import { WishlistProvider } from "@/lib/wishlist-context"
 import { Toaster } from "@/components/ui/sonner"
+import { PageViewTracker } from "@/components/page-view-tracker"
 import "./globals.css"
 
 const inter = Inter({
@@ -168,6 +169,7 @@ export default function RootLayout({
       </head>
       <body className="font-sans antialiased">
         <WishlistProvider><CartProvider>{children}</CartProvider></WishlistProvider>
+        <PageViewTracker />
         <Toaster position="top-right" richColors closeButton />
       </body>
     </html>
