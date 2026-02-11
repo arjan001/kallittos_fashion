@@ -24,6 +24,7 @@ export async function POST(request: Request) {
       paymentMethod: body.paymentMethod || "cod",
       mpesaCode: body.mpesaCode,
       mpesaPhone: body.mpesaPhone,
+      mpesaMessage: body.mpesaMessage,
       items: body.items,
     })
 

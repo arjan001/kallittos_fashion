@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
+import { useSearchParams } from "next/navigation"
 import { Search, Package, Truck, CheckCircle, Clock, XCircle, Loader2, Phone, Hash } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -65,6 +66,7 @@ function getStepIndex(status: OrderStatus) {
 }
 
 export function TrackOrderForm() {
+  const searchParams = useSearchParams()
   const [searchType, setSearchType] = useState<"order" | "phone">("order")
   const [query, setQuery] = useState("")
   const [orders, setOrders] = useState<TrackedOrder[]>([])
@@ -72,17 +74,15 @@ export function TrackOrderForm() {
   const [error, setError] = useState("")
   const [searched, setSearched] = useState(false)
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!query.trim()) return
-
+  const doSearch = useCallback(async (type: "order" | "phone", value: string) => {
+    if (!value.trim()) return
     setLoading(true)
     setError("")
     setOrders([])
     setSearched(true)
 
     try {
-      const param = searchType === "order" ? `order_number=${encodeURIComponent(query.trim())}` : `phone=${encodeURIComponent(query.trim())}`
+      const param = type === "order" ? `order_number=${encodeURIComponent(value.trim())}` : `phone=${encodeURIComponent(value.trim())}`
       const res = await fetch(`/api/track-order?${param}`)
       const data = await res.json()
 
@@ -96,6 +96,21 @@ export function TrackOrderForm() {
     } finally {
       setLoading(false)
     }
+  }, [])
+
+  // Auto-fill and search from URL query param
+  useEffect(() => {
+    const orderParam = searchParams.get("order")
+    if (orderParam) {
+      setQuery(orderParam)
+      setSearchType("order")
+      doSearch("order", orderParam)
+    }
+  }, [searchParams, doSearch])
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault()
+    doSearch(searchType, query)
   }
 
   return (
