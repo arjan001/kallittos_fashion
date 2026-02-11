@@ -65,7 +65,7 @@ function getStepIndex(status: OrderStatus) {
   return statusSteps.findIndex((s) => s.key === status)
 }
 
-export function TrackOrderForm() {
+export function TrackOrderForm({ initialOrderNumber }: { initialOrderNumber?: string }) {
   const searchParams = useSearchParams()
   const [searchType, setSearchType] = useState<"order" | "phone">("order")
   const [query, setQuery] = useState("")
@@ -98,15 +98,15 @@ export function TrackOrderForm() {
     }
   }, [])
 
-  // Auto-fill and search from URL query param
+  // Auto-fill and search from URL path param or query param
   useEffect(() => {
-    const orderParam = searchParams.get("order")
-    if (orderParam) {
-      setQuery(orderParam)
+    const orderCode = initialOrderNumber || searchParams.get("order")
+    if (orderCode) {
+      setQuery(orderCode)
       setSearchType("order")
-      doSearch("order", orderParam)
+      doSearch("order", orderCode)
     }
-  }, [searchParams, doSearch])
+  }, [initialOrderNumber, searchParams, doSearch])
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()

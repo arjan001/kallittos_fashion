@@ -172,13 +172,13 @@ export function CheckoutPage() {
   if (orderResult) {
     const isWhatsApp = orderResult.orderNumber === "WhatsApp"
     const isMpesa = orderResult.paymentMethod === "mpesa"
-    const trackUrl = isWhatsApp ? "/track-order" : `/track-order?order=${orderResult.orderNumber}`
+    const trackUrl = isWhatsApp ? "/track-order" : `/track-order/${orderResult.orderNumber}`
 
     return (
       <div className="min-h-screen flex flex-col">
         <TopBar />
         <Navbar />
-        <main className="flex-1 flex items-center justify-center py-24 md:py-32">
+        <main className="flex-1 flex items-center justify-center py-16 md:py-20">
           <div className="max-w-lg w-full mx-auto px-4">
             {/* Success animation */}
             <div className="text-center">
