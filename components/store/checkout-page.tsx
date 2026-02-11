@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { ChevronRight, Minus, Plus, X, Truck, Loader2, CheckCircle } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { ChevronRight, Minus, Plus, X, Truck, Loader2, CheckCircle, Package, MapPin } from "lucide-react"
 import { TopBar } from "./top-bar"
 import { Navbar } from "./navbar"
 import { Footer } from "./footer"
@@ -18,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export function CheckoutPage() {
+  const router = useRouter()
   const { items, removeItem, updateQuantity, totalPrice, clearCart } = useCart()
   const [deliveryLocation, setDeliveryLocation] = useState("")
   const [deliveryLocations, setDeliveryLocations] = useState<DeliveryLocation[]>([])
@@ -137,7 +139,7 @@ export function CheckoutPage() {
     setShowMpesa(true)
   }
 
-  const handleMpesaConfirmed = async (mpesaCode: string, mpesaPhone: string) => {
+  const handleMpesaConfirmed = async (mpesaCode: string, mpesaPhone: string, mpesaMessage: string) => {
     setShowMpesa(false)
     setIsSubmitting(true)
     try {
@@ -146,6 +148,7 @@ export function CheckoutPage() {
         paymentMethod: "mpesa",
         mpesaCode,
         mpesaPhone: mpesaPhone || formData.phone,
+        mpesaMessage,
         status: "pending",
       }
       const res = await fetch("/api/orders", {
@@ -165,47 +168,105 @@ export function CheckoutPage() {
     }
   }
 
-  // Order confirmation screen
+  // Modern order success screen
   if (orderResult) {
+    const isWhatsApp = orderResult.orderNumber === "WhatsApp"
+    const isMpesa = orderResult.paymentMethod === "mpesa"
+    const trackUrl = isWhatsApp ? "/track-order" : `/track-order?order=${orderResult.orderNumber}`
+
     return (
       <div className="min-h-screen flex flex-col">
         <TopBar />
         <Navbar />
-        <main className="flex-1 flex items-center justify-center">
-          <div className="text-center max-w-md mx-auto px-4">
-            <CheckCircle className="h-16 w-16 mx-auto text-foreground mb-4" />
-            <h1 className="text-2xl font-serif font-bold">Order Placed!</h1>
-            {orderResult.paymentMethod === "mpesa" ? (
-              <>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Your order <span className="font-semibold text-foreground">{orderResult.orderNumber}</span> has been received.
-                </p>
-                <div className="mt-3 bg-[#4CAF50]/10 border border-[#4CAF50]/20 p-4 rounded-sm">
-                  <p className="text-sm font-medium text-[#4CAF50]">Paid via M-PESA</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Your payment is being verified. We will confirm and arrange delivery shortly.
+        <main className="flex-1 flex items-center justify-center py-12">
+          <div className="max-w-lg w-full mx-auto px-4">
+            {/* Success animation */}
+            <div className="text-center">
+              <div className="relative w-24 h-24 mx-auto mb-6">
+                <div className="absolute inset-0 rounded-full bg-[#00843D]/10 animate-ping" style={{ animationDuration: "2s" }} />
+                <div className="relative w-24 h-24 rounded-full bg-[#00843D]/10 flex items-center justify-center">
+                  <CheckCircle className="h-12 w-12 text-[#00843D]" />
+                </div>
+              </div>
+
+              <h1 className="text-3xl font-serif font-bold text-balance">Order Placed Successfully!</h1>
+
+              {!isWhatsApp && (
+                <div className="mt-3 inline-flex items-center gap-2 bg-secondary px-4 py-2 rounded-sm">
+                  <span className="text-xs text-muted-foreground">Order No:</span>
+                  <span className="text-sm font-bold font-mono tracking-wider">{orderResult.orderNumber}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Status card */}
+            <div className="mt-8 border border-border rounded-sm overflow-hidden">
+              {isMpesa && (
+                <div className="bg-[#00843D]/5 border-b border-[#00843D]/15 px-5 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#00843D]/10 flex items-center justify-center flex-shrink-0">
+                      <CheckCircle className="h-5 w-5 text-[#00843D]" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-[#00843D]">M-PESA Payment Received</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Your transaction has been submitted. Await admin confirmation via WhatsApp.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {isWhatsApp && (
+                <div className="bg-[#25D366]/5 border-b border-[#25D366]/15 px-5 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#25D366]/10 flex items-center justify-center flex-shrink-0">
+                      <CheckCircle className="h-5 w-5 text-[#25D366]" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-[#25D366]">WhatsApp Order Sent</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Complete your conversation on WhatsApp. We will confirm shortly.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="px-5 py-4 space-y-3">
+                <div className="flex items-center gap-3">
+                  <Package className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  <p className="text-sm text-muted-foreground">
+                    {selectedDelivery?.name?.toLowerCase().includes("pick") 
+                      ? "Your order will be ready for pick-up at our store."
+                      : "Your order will be delivered to your address."
+                    }
                   </p>
                 </div>
-              </>
-            ) : orderResult.orderNumber !== "WhatsApp" ? (
-              <>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Your order <span className="font-semibold text-foreground">{orderResult.orderNumber}</span> has been received.
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  We will contact you on your phone to confirm delivery details.
-                </p>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground mt-2">
-                Complete your order on WhatsApp. We will confirm and arrange delivery.
-              </p>
-            )}
-            <Link href="/shop">
-              <Button className="mt-6 bg-foreground text-background hover:bg-foreground/90">
-                Continue Shopping
+                {selectedDelivery && (
+                  <div className="flex items-center gap-3">
+                    <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <p className="text-sm text-muted-foreground">{selectedDelivery.name}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="mt-8 flex flex-col sm:flex-row gap-3">
+              <Button
+                onClick={() => router.push(trackUrl)}
+                className="flex-1 h-12 bg-foreground text-background hover:bg-foreground/90 font-semibold"
+              >
+                <Truck className="h-4 w-4 mr-2" />
+                Track My Order
               </Button>
-            </Link>
+              <Link href="/shop" className="flex-1">
+                <Button variant="outline" className="w-full h-12 bg-transparent font-medium">
+                  Continue Shopping
+                </Button>
+              </Link>
+            </div>
           </div>
         </main>
         <Footer />

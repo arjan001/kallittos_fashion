@@ -45,6 +45,10 @@ export async function GET() {
     notes: o.notes || "",
     status: o.status,
     orderedVia: o.ordered_via || "website",
+    paymentMethod: o.payment_method || "cod",
+    mpesaCode: o.mpesa_code || "",
+    mpesaPhone: o.mpesa_phone || "",
+    mpesaMessage: o.mpesa_message || "",
     date: o.created_at ? new Date(o.created_at).toISOString().split("T")[0] : "",
   }))
 
