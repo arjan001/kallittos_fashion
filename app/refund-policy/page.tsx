@@ -15,6 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: p?.meta_title || "Refund Policy | Kallittos Fashions",
     description: p?.meta_description || "Understand Kallittos Fashions refund, return, and exchange policy.",
+    alternates: { canonical: "https://kallittofashions.com/refund-policy" },
     keywords: p?.meta_keywords?.split(",").map((k: string) => k.trim()) || ["refund policy", "kallittos fashions"],
     authors: [
       { name: "Kallittos Fashions", url: "https://kallittofashions.com" },

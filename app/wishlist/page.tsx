@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: "My Wishlist | Kallittos Fashions",
   description:
     "Save your favourite thrift and brand-new denim pieces to your Kallittos Fashions wishlist. Curate your perfect collection of jeans, jackets, and dungarees and shop when you are ready. Delivered across Kenya via M-PESA.",
+  alternates: { canonical: "https://kallittofashions.com/wishlist" },
   keywords: [
     "Kallittos wishlist", "saved jeans Kenya", "favourite denim Nairobi",
     "thrift jeans wishlist", "denim collection Kenya", "Kallittos Fashions wishlist",

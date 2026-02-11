@@ -13,6 +13,16 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Delivery Locations & Rates | Kallittos Fashions",
     description: "Free shipping on orders above KSh 5,000. Same-day delivery in Nairobi. M-PESA accepted.",
+    url: "https://kallittofashions.com/delivery",
+    type: "website",
+    siteName: "Kallittos Fashions",
+    locale: "en_KE",
+    images: [{ url: "https://kallittofashions.com/logo-kf.png", width: 512, height: 512, alt: "Kallittos Fashions Delivery" }],
+  },
+  twitter: {
+    card: "summary",
+    title: "Delivery Locations & Rates | Kallittos Fashions",
+    description: "Free shipping on orders above KSh 5,000. Same-day delivery in Nairobi.",
   },
 }
 
