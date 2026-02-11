@@ -21,6 +21,7 @@ import {
   Users,
   UserCircle,
   FileText,
+  Megaphone,
 } from "lucide-react"
 
 const navItems = [
