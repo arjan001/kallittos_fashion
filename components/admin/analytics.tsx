@@ -245,23 +245,7 @@ export function AdminAnalytics() {
 
           <TabsContent value="traffic" className="mt-6 space-y-6">
             {/* Daily traffic chart */}
-            <div className="border border-border rounded-sm p-6">
-              <h2 className="text-sm font-semibold mb-6">Daily Page Views (Last 30 Days)</h2>
-              <div className="flex items-end gap-1 h-48 overflow-x-auto">
-                {(visitors?.viewsByDay || []).length === 0 ? (
-                  <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">No traffic data yet. Views will appear as visitors browse your site.</div>
-                ) : (visitors?.viewsByDay || []).map((d) => {
-                  const maxViews = Math.max(...(visitors?.viewsByDay || []).map((v) => v.count), 1)
-                  return (
-                    <div key={d.date} className="flex-1 min-w-[16px] flex flex-col items-center gap-1">
-                      <span className="text-[9px] text-muted-foreground">{d.count}</span>
-                      <div className="w-full bg-foreground rounded-t-sm transition-all" style={{ height: `${(d.count / maxViews) * 100}%`, minHeight: d.count > 0 ? "4px" : "0" }} />
-                      <span className="text-[8px] text-muted-foreground rotate-[-45deg] origin-top-left whitespace-nowrap">{new Date(d.date).toLocaleDateString("en", { month: "short", day: "numeric" })}</span>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
+            <DailyViewsChart viewsByDay={visitors?.viewsByDay || []} />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Top Pages */}
@@ -379,6 +363,84 @@ export function AdminAnalytics() {
         </Tabs>
       </div>
     </AdminShell>
+  )
+}
+
+function DailyViewsChart({ viewsByDay }: { viewsByDay: { date: string; count: number }[] }) {
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
+  const maxViews = Math.max(...viewsByDay.map((v) => v.count), 1)
+  const totalViews = viewsByDay.reduce((s, d) => s + d.count, 0)
+
+  if (viewsByDay.length === 0 || totalViews === 0) {
+    return (
+      <div className="border border-border rounded-sm p-6">
+        <h2 className="text-sm font-semibold mb-6">Daily Page Views (Last 30 Days)</h2>
+        <div className="h-48 flex items-center justify-center text-sm text-muted-foreground">
+          No traffic data yet. Views will appear as visitors browse your site.
+        </div>
+      </div>
+    )
+  }
+
+  // Show labels every ~5 days to avoid crowding
+  const labelInterval = Math.max(1, Math.ceil(viewsByDay.length / 7))
+
+  return (
+    <div className="border border-border rounded-sm p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-sm font-semibold">Daily Page Views (Last 30 Days)</h2>
+        <span className="text-xs text-muted-foreground">{totalViews} total views</span>
+      </div>
+      <div className="relative">
+        {/* Y-axis guides */}
+        <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+          {[1, 0.75, 0.5, 0.25, 0].map((pct) => (
+            <div key={pct} className="flex items-center gap-2">
+              <span className="text-[9px] text-muted-foreground w-7 text-right flex-shrink-0">{Math.round(maxViews * pct)}</span>
+              <div className="flex-1 border-b border-border/40" />
+            </div>
+          ))}
+        </div>
+
+        {/* Bars */}
+        <div className="flex items-end gap-[2px] h-48 pl-9 relative">
+          {viewsByDay.map((d, i) => {
+            const heightPct = (d.count / maxViews) * 100
+            const isHovered = hoveredIndex === i
+            return (
+              <div
+                key={d.date}
+                className="flex-1 flex flex-col items-center justify-end h-full relative group cursor-pointer"
+                onMouseEnter={() => setHoveredIndex(i)}
+                onMouseLeave={() => setHoveredIndex(null)}
+              >
+                {/* Tooltip */}
+                {isHovered && (
+                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-foreground text-background text-[10px] px-2 py-1 rounded-sm whitespace-nowrap z-10 shadow-lg">
+                    {new Date(d.date).toLocaleDateString("en", { month: "short", day: "numeric" })}: {d.count} view{d.count !== 1 ? "s" : ""}
+                  </div>
+                )}
+                <div
+                  className={`w-full rounded-t-sm transition-all duration-150 ${isHovered ? "bg-foreground" : "bg-foreground/70"}`}
+                  style={{ height: `${heightPct}%`, minHeight: d.count > 0 ? "3px" : "1px" }}
+                />
+              </div>
+            )
+          })}
+        </div>
+
+        {/* X-axis labels */}
+        <div className="flex pl-9 mt-2">
+          {viewsByDay.map((d, i) => (
+            <div key={d.date} className="flex-1 text-center">
+              {i % labelInterval === 0 && (
+                <span className="text-[9px] text-muted-foreground">{new Date(d.date).toLocaleDateString("en", { month: "short", day: "numeric" })}</span>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   )
 }
 

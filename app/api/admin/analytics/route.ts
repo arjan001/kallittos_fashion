@@ -40,15 +40,19 @@ export async function GET(request: NextRequest) {
     .sort((a, b) => b.count - a.count)
     .slice(0, 10)
 
-  // Views by day
+  // Views by day - fill all days in range so chart has no gaps
   const dayMap: Record<string, number> = {}
   views.forEach((v) => {
     const day = new Date(v.created_at).toISOString().split("T")[0]
     dayMap[day] = (dayMap[day] || 0) + 1
   })
-  const viewsByDay = Object.entries(dayMap)
-    .map(([date, count]) => ({ date, count }))
-    .sort((a, b) => a.date.localeCompare(b.date))
+  const viewsByDay: { date: string; count: number }[] = []
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date()
+    d.setDate(d.getDate() - i)
+    const key = d.toISOString().split("T")[0]
+    viewsByDay.push({ date: key, count: dayMap[key] || 0 })
+  }
 
   // Device breakdown
   const deviceMap: Record<string, number> = {}
