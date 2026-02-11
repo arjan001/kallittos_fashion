@@ -162,17 +162,6 @@ export function MpesaPaymentModal({ isOpen, onClose, total, onPaymentConfirmed }
             </div>
 
             <div>
-              <Label className="text-sm font-medium mb-1.5 block">M-PESA Code (optional)</Label>
-              <Input
-                value={mpesaCode}
-                onChange={(e) => setMpesaCode(e.target.value.toUpperCase())}
-                placeholder="Auto-detected from message above"
-                className="h-11 text-center font-mono font-bold tracking-widest uppercase"
-                maxLength={12}
-              />
-            </div>
-
-            <div>
               <Label className="text-sm font-medium mb-1.5 block">Phone Number Used (optional)</Label>
               <Input
                 value={mpesaPhone}
