@@ -325,5 +325,6 @@ export function AdminPolicies() {
         </div>
       )}
     </div>
+    </AdminShell>
   )
 }
