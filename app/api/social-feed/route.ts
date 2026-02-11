@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 
-export const revalidate = 3600 // cache for 1 hour
+export const revalidate = 1800 // cache 30 min
 
 interface SocialPost {
   id: string
@@ -11,74 +11,93 @@ interface SocialPost {
   authorName: string
 }
 
-// Fetch latest Instagram posts via public profile page data
+// ── Instagram ─────────────────────────────────────────
+// Uses rss.app or similar RSS-to-JSON proxies to get latest posts.
+// Falls back to scraping the profile page via imginn.com which mirrors IG publicly.
 async function fetchInstagramPosts(): Promise<SocialPost[]> {
+  const username = "kallittofashions"
+  const posts: SocialPost[] = []
+
+  // Approach 1: Use imginn.com (public IG mirror) HTML scrape
   try {
-    // Use Instagram's oembed to get profile data for known recent post URLs
-    // Since we can't list posts without a token, we fetch the profile page via a proxy
-    const res = await fetch(
-      "https://www.instagram.com/kallittofashions/?__a=1&__d=dis",
-      {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        },
-        next: { revalidate: 3600 },
-      }
-    )
+    const res = await fetch(`https://imginn.com/${username}/`, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        Accept: "text/html",
+      },
+      next: { revalidate: 1800 },
+    })
 
     if (res.ok) {
-      const data = await res.json()
-      const edges =
-        data?.graphql?.user?.edge_owner_to_timeline_media?.edges || []
-      return edges.slice(0, 2).map((edge: Record<string, Record<string, string>>) => ({
-        id: `ig-${edge.node.shortcode}`,
-        platform: "instagram" as const,
-        thumbnailUrl: edge.node.display_url || edge.node.thumbnail_src,
-        caption:
-          (edge.node as Record<string, Record<string, Record<string, string>[]>>).edge_media_to_caption?.edges?.[0]?.node?.text?.slice(0, 100) || "Latest post",
-        url: `https://www.instagram.com/p/${edge.node.shortcode}/`,
-        authorName: "@kallittofashions",
-      }))
+      const html = await res.text()
+      // Extract post data from the HTML - imginn uses img tags with data-src or src
+      const imgRegex =
+        /<a[^>]*href="(\/p\/[^"]+)"[^>]*>[\s\S]*?<img[^>]*src="([^"]+)"[^>]*>/g
+      let match
+      let count = 0
+      while ((match = imgRegex.exec(html)) !== null && count < 2) {
+        const postPath = match[1]
+        const thumbUrl = match[2]
+        if (thumbUrl && !thumbUrl.includes("avatar") && !thumbUrl.includes("profile")) {
+          const shortcode = postPath.replace("/p/", "").replace("/", "")
+          posts.push({
+            id: `ig-${shortcode}`,
+            platform: "instagram",
+            thumbnailUrl: thumbUrl,
+            caption: "Latest from @kallittofashions",
+            url: `https://www.instagram.com/p/${shortcode}/`,
+            authorName: `@${username}`,
+          })
+          count++
+        }
+      }
+
+      if (posts.length >= 2) return posts.slice(0, 2)
     }
   } catch {
-    // Fallback silently
+    // continue to next approach
   }
 
-  // Fallback: use oembed for known post URLs
-  const knownUrls = [
-    "https://www.instagram.com/kallittofashions/",
-    "https://www.instagram.com/kallittofashions/",
-  ]
-
-  const posts: SocialPost[] = []
-  for (const url of knownUrls) {
-    try {
-      const oembedRes = await fetch(
-        `https://api.instagram.com/oembed/?url=${encodeURIComponent(url)}&omitscript=true`,
-        { next: { revalidate: 3600 } }
-      )
-      if (oembedRes.ok) {
-        const data = await oembedRes.json()
-        posts.push({
-          id: `ig-oembed-${posts.length}`,
-          platform: "instagram",
-          thumbnailUrl: data.thumbnail_url || "",
-          caption: data.title?.slice(0, 100) || "Latest from Instagram",
-          url,
-          authorName: data.author_name || "@kallittofashions",
-        })
+  // Approach 2: Use Bibliogram (another public mirror)
+  try {
+    const res = await fetch(`https://bibliogram.art/u/${username}/rss.xml`, {
+      next: { revalidate: 1800 },
+    })
+    if (res.ok) {
+      const xml = await res.text()
+      const items = xml.split("<item>").slice(1, 3)
+      for (const item of items) {
+        const linkMatch = item.match(/<link>([^<]+)<\/link>/)
+        const imgMatch =
+          item.match(/<media:content[^>]*url="([^"]+)"/) ||
+          item.match(/<enclosure[^>]*url="([^"]+)"/) ||
+          item.match(/src="(https:\/\/[^"]+\.jpg[^"]*)"/i)
+        const titleMatch = item.match(/<title>([^<]*)<\/title>/)
+        if (linkMatch) {
+          posts.push({
+            id: `ig-bib-${posts.length}`,
+            platform: "instagram",
+            thumbnailUrl: imgMatch?.[1] || "",
+            caption: titleMatch?.[1]?.slice(0, 100) || "Latest from Instagram",
+            url: linkMatch[1],
+            authorName: `@${username}`,
+          })
+        }
       }
-    } catch {
-      // continue
+      if (posts.length >= 2) return posts.slice(0, 2)
     }
+  } catch {
+    // continue
   }
 
   return posts
 }
 
-// Fetch TikTok post metadata via oembed API
+// ── TikTok ────────────────────────────────────────────
+// Uses the official TikTok oembed API (free, no auth required)
 async function fetchTikTokPosts(): Promise<SocialPost[]> {
+  // Known recent video URLs from @kallittos
   const videoUrls = [
     "https://www.tiktok.com/@kallittos/video/7461643744227393798",
     "https://www.tiktok.com/@kallittos/video/7459629757042420998",
@@ -90,7 +109,7 @@ async function fetchTikTokPosts(): Promise<SocialPost[]> {
     try {
       const res = await fetch(
         `https://www.tiktok.com/oembed?url=${encodeURIComponent(videoUrl)}`,
-        { next: { revalidate: 3600 } }
+        { next: { revalidate: 1800 } }
       )
       if (res.ok) {
         const data = await res.json()
@@ -98,9 +117,12 @@ async function fetchTikTokPosts(): Promise<SocialPost[]> {
           id: `tt-${data.embed_product_id || posts.length}`,
           platform: "tiktok",
           thumbnailUrl: data.thumbnail_url || "",
-          caption: data.title?.slice(0, 100) || "Latest from TikTok",
+          caption:
+            data.title?.slice(0, 100) || "Latest from TikTok",
           url: videoUrl,
-          authorName: data.author_name || "@kallittos",
+          authorName: data.author_name
+            ? `@${data.author_name}`
+            : "@kallittos",
         })
       }
     } catch {
@@ -110,6 +132,46 @@ async function fetchTikTokPosts(): Promise<SocialPost[]> {
 
   return posts
 }
+
+// ── Fallback posts (used when APIs fail) ──────────────
+const fallbackPosts: SocialPost[] = [
+  {
+    id: "ig-fallback-1",
+    platform: "instagram",
+    thumbnailUrl:
+      "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/629193217_18340368757212493_1480765838168153731_n-wC1jOTRfbRYdWnoXghbWGXEVNGBWam.jpg",
+    caption: "New thrift drop just landed! Acid wash skinny jeans",
+    url: "https://www.instagram.com/kallittofashions/",
+    authorName: "@kallittofashions",
+  },
+  {
+    id: "tt-fallback-1",
+    platform: "tiktok",
+    thumbnailUrl:
+      "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/626300021_18340368655212493_4414636015382857078_n-blUbjySwyB9lUadVyYMogCeKLn1ceI.jpg",
+    caption: "How to style thrifted denim for any occasion",
+    url: "https://www.tiktok.com/@kallittos/video/7461643744227393798",
+    authorName: "@kallittos",
+  },
+  {
+    id: "ig-fallback-2",
+    platform: "instagram",
+    thumbnailUrl:
+      "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/630121672_18340368937212493_3946690921086389086_n-VRoUTe5L8vTxr34o4RQxJDZGGzARSK.jpg",
+    caption: "Bootcut flared jeans - a timeless classic",
+    url: "https://www.instagram.com/kallittofashions/",
+    authorName: "@kallittofashions",
+  },
+  {
+    id: "tt-fallback-2",
+    platform: "tiktok",
+    thumbnailUrl:
+      "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/627839274_18340368694212493_1900658190163154627_n-RQbuPfN5qde7Mt0Zu6MOrirynVM7Nv.jpg",
+    caption: "Size-inclusive denim haul from Kallittos Fashions",
+    url: "https://www.tiktok.com/@kallittos/video/7459629757042420998",
+    authorName: "@kallittos",
+  },
+]
 
 export async function GET() {
   const [igPosts, ttPosts] = await Promise.all([
@@ -125,5 +187,32 @@ export async function GET() {
     if (ttPosts[i]) combined.push(ttPosts[i])
   }
 
-  return NextResponse.json({ posts: combined.slice(0, 4) })
+  // Use fallbacks to fill any gaps, maintaining IG/TT alternating pattern
+  const result: SocialPost[] = []
+  let igIdx = 0
+  let ttIdx = 0
+  const liveIg = combined.filter((p) => p.platform === "instagram")
+  const liveTt = combined.filter((p) => p.platform === "tiktok")
+  const fallbackIg = fallbackPosts.filter((p) => p.platform === "instagram")
+  const fallbackTt = fallbackPosts.filter((p) => p.platform === "tiktok")
+
+  for (let i = 0; i < 4; i++) {
+    if (i % 2 === 0) {
+      // Instagram slot
+      result.push(liveIg[igIdx] || fallbackIg[igIdx] || fallbackPosts[i])
+      igIdx++
+    } else {
+      // TikTok slot
+      result.push(liveTt[ttIdx] || fallbackTt[ttIdx] || fallbackPosts[i])
+      ttIdx++
+    }
+  }
+
+  return NextResponse.json({
+    posts: result,
+    sources: {
+      instagram: liveIg.length > 0 ? "live" : "fallback",
+      tiktok: liveTt.length > 0 ? "live" : "fallback",
+    },
+  })
 }
