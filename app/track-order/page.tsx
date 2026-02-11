@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   title: "Track My Order | Kallittos Fashions",
   description:
     "Track your Kallittos Fashions order in real time. Enter your order number or phone number to see the status of your denim delivery across Kenya.",
+  alternates: { canonical: "https://kallittofashions.com/track-order" },
   keywords: [
     "track order Kallittos", "kallittosfashions order tracking", "track jeans delivery Kenya",
     "Kallittos Fashions order status", "denim delivery Nairobi", "check order Kenya",
