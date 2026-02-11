@@ -439,22 +439,6 @@ export function CheckoutPage() {
                     </div>
                   </div>
 
-                  {/* Normal Checkout (Pay on Delivery) */}
-                  <Button
-                    onClick={handleNormalCheckout}
-                    disabled={!isFormValid || isSubmitting}
-                    className="w-full bg-foreground text-background hover:bg-foreground/90 h-12 text-sm font-medium disabled:opacity-40"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Placing Order...
-                      </>
-                    ) : (
-                      "Pay on Delivery"
-                    )}
-                  </Button>
-
                   {/* WhatsApp Checkout */}
                   <Button
                     onClick={handleWhatsAppCheckout}
