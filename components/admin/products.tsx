@@ -63,6 +63,7 @@ export function AdminProducts() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<ProductForm>(emptyForm)
   const [searchQuery, setSearchQuery] = useState("")
+  const [categoryFilter, setCategoryFilter] = useState("all")
   const [newImageUrl, setNewImageUrl] = useState("")
   const [showImport, setShowImport] = useState(false)
   const [importCsv, setImportCsv] = useState("")
@@ -77,11 +78,14 @@ export function AdminProducts() {
   const [isUploading, setIsUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const filtered = products.filter(
-    (p) =>
+  const filtered = products.filter((p) => {
+    const matchesSearch =
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.category.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+    const matchesCategory =
+      categoryFilter === "all" || p.categorySlug === categoryFilter
+    return matchesSearch && matchesCategory
+  })
 
   const { paginatedItems, currentPage, totalPages, totalItems, itemsPerPage, goToPage, changePerPage } = usePagination(filtered, { defaultPerPage: 20 })
 
@@ -444,15 +448,41 @@ export function AdminProducts() {
           </div>
         </div>
 
-        {/* Search */}
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search products..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 h-10"
-          />
+        {/* Search & Filter */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="relative max-w-sm flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search products..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 h-10"
+            />
+          </div>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-[180px] h-10">
+              <SelectValue placeholder="All Categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {categories.map((cat) => (
+                <SelectItem key={cat.id} value={cat.slug}>
+                  {cat.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {categoryFilter !== "all" && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setCategoryFilter("all")}
+              className="text-muted-foreground h-10"
+            >
+              <X className="h-3.5 w-3.5 mr-1" />
+              Clear filter
+            </Button>
+          )}
         </div>
 
         {/* Bulk Actions */}

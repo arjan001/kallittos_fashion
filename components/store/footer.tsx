@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 import { MapPin, Phone, Mail, Clock, Navigation } from "lucide-react"
 
 export function Footer() {
@@ -8,8 +9,17 @@ export function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
           {/* Brand + Social */}
           <div>
-            <Link href="/" className="font-serif text-2xl font-bold tracking-tight">
-              Kallittos Fashions
+            <Link href="/" className="flex items-center gap-3">
+              <Image
+                src="/logo-kf.png"
+                alt="Kallittos Fashions logo"
+                width={48}
+                height={48}
+                className="rounded-full"
+              />
+              <span className="font-serif text-2xl font-bold tracking-tight">
+                Kallittos Fashions
+              </span>
             </Link>
             <p className="text-background/60 text-sm mt-4 leading-relaxed max-w-xs">
               Curated thrift and brand-new denim pieces. From straight legs to mom jeans, dungarees to jackets -- your one-stop denim destination in Nairobi.

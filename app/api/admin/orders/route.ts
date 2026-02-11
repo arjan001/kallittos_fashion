@@ -1,7 +1,12 @@
 import { createClient } from "@/lib/supabase/server"
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
+import { requireAuth, rateLimit, rateLimitResponse } from "@/lib/security"
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const rl = rateLimit(request, { limit: 30, windowSeconds: 60 })
+  if (!rl.success) return rateLimitResponse()
+  const auth = await requireAuth()
+  if (!auth.authenticated) return auth.response!
   const supabase = await createClient()
 
   const { data: orders, error } = await supabase
@@ -55,7 +60,10 @@ export async function GET() {
   return NextResponse.json(result)
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
+  const auth = await requireAuth()
+  if (!auth.authenticated) return auth.response!
+
   const supabase = await createClient()
   const { searchParams } = new URL(request.url)
   const ids = searchParams.get("ids")
@@ -82,7 +90,10 @@ export async function DELETE(request: Request) {
   return NextResponse.json({ success: true, deleted: idArray.length })
 }
 
-export async function PATCH(request: Request) {
+export async function PATCH(request: NextRequest) {
+  const auth = await requireAuth()
+  if (!auth.authenticated) return auth.response!
+
   const supabase = await createClient()
   const body = await request.json()
 

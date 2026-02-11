@@ -1,7 +1,12 @@
 import { createClient } from "@/lib/supabase/server"
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
+import { requireAuth, rateLimit, rateLimitResponse } from "@/lib/security"
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const rl = rateLimit(request, { limit: 30, windowSeconds: 60 })
+  if (!rl.success) return rateLimitResponse()
+  const auth = await requireAuth()
+  if (!auth.authenticated) return auth.response!
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("delivery_locations")
@@ -21,7 +26,9 @@ export async function GET() {
   return NextResponse.json(locations)
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const auth = await requireAuth()
+  if (!auth.authenticated) return auth.response!
   const supabase = await createClient()
   const body = await request.json()
 
@@ -40,7 +47,9 @@ export async function POST(request: Request) {
   return NextResponse.json(data)
 }
 
-export async function PUT(request: Request) {
+export async function PUT(request: NextRequest) {
+  const auth = await requireAuth()
+  if (!auth.authenticated) return auth.response!
   const supabase = await createClient()
   const body = await request.json()
 
@@ -58,7 +67,9 @@ export async function PUT(request: Request) {
   return NextResponse.json({ success: true })
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
+  const auth = await requireAuth()
+  if (!auth.authenticated) return auth.response!
   const supabase = await createClient()
   const { searchParams } = new URL(request.url)
   const id = searchParams.get("id")
