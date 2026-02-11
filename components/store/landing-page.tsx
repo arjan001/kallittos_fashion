@@ -21,8 +21,7 @@ export function LandingPage() {
       <Navbar />
       <main className="flex-1">
         <Hero />
-        {/* TODO: Redundant with Hero banners - Shop By Collection section commented out */}
-        {/* <CategoriesSection /> */}
+        <CategoriesSection />
         <FeaturedProducts />
         <OfferBanner />
         <NewArrivals />
