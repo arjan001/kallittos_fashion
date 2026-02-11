@@ -19,6 +19,28 @@ function formatPrice(price: number): string {
   return `KSh ${price.toLocaleString()}`
 }
 
+function BabyshopNavLink() {
+  const [showTooltip, setShowTooltip] = useState(false)
+  return (
+    <div className="relative group">
+      <Link
+        href="/shop/babyshop"
+        className="text-sm font-medium neon-flicker text-pink-600 hover:text-pink-700 transition-colors relative"
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+      >
+        Babyshop ✨
+      </Link>
+      {showTooltip && (
+        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 bg-foreground text-background px-3 py-2 rounded-sm text-xs whitespace-nowrap z-50 pointer-events-none">
+          Kali-ttos Little Wardrobe
+          <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-foreground rotate-45" />
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function Navbar() {
   const router = useRouter()
   const { totalItems, setIsCartOpen } = useCart()
@@ -106,7 +128,7 @@ export function Navbar() {
                 <p className="pt-3 pb-1 text-[10px] tracking-[0.2em] uppercase text-muted-foreground">Collections</p>
                 <Link href="/shop/men" className="py-2.5 text-sm border-b border-border pl-3">Men</Link>
                 <Link href="/shop/women" className="py-2.5 text-sm border-b border-border pl-3">Women</Link>
-                <Link href="/shop/babyshop" className="py-2.5 text-sm border-b border-border pl-3">Babyshop</Link>
+                <Link href="/shop/babyshop" className="py-2.5 text-sm border-b border-border pl-3 text-pink-600 font-medium">Babyshop ✨</Link>
                 <p className="pt-3 pb-1 text-[10px] tracking-[0.2em] uppercase text-muted-foreground">Categories</p>
                 {categories.map((cat) => (
                   <Link key={cat.id} href={`/shop?category=${cat.slug}`} className="py-2.5 text-sm border-b border-border pl-3">{cat.name}</Link>
@@ -135,7 +157,7 @@ export function Navbar() {
                     <p className="px-4 pt-3 pb-1 text-[10px] tracking-[0.2em] uppercase text-muted-foreground">Collections</p>
                     <Link href="/shop/men" className="block px-4 py-2.5 text-sm font-medium hover:bg-secondary transition-colors" onClick={() => setCategoriesOpen(false)}>Men</Link>
                     <Link href="/shop/women" className="block px-4 py-2.5 text-sm font-medium hover:bg-secondary transition-colors" onClick={() => setCategoriesOpen(false)}>Women</Link>
-                    <Link href="/shop/babyshop" className="block px-4 py-2.5 text-sm font-medium hover:bg-secondary transition-colors" onClick={() => setCategoriesOpen(false)}>Babyshop</Link>
+                    <BabyshopNavLink />
                     <div className="border-t border-border my-1" />
                     <p className="px-4 pt-2 pb-1 text-[10px] tracking-[0.2em] uppercase text-muted-foreground">Categories</p>
                     {categories.map((cat) => (
@@ -237,7 +259,7 @@ export function Navbar() {
               <Link href="/shop" className="text-sm font-medium hover:text-muted-foreground transition-colors">Shop</Link>
               <Link href="/shop/men" className="text-sm font-medium hover:text-muted-foreground transition-colors">Men</Link>
               <Link href="/shop/women" className="text-sm font-medium hover:text-muted-foreground transition-colors">Women</Link>
-              <Link href="/shop/babyshop" className="text-sm font-medium hover:text-muted-foreground transition-colors">Babyshop</Link>
+              <BabyshopNavLink />
               <Link href="/shop?filter=new" className="text-sm font-medium hover:text-muted-foreground transition-colors">New Arrivals</Link>
               <Link href="/shop?filter=offers" className="text-sm font-medium hover:text-muted-foreground transition-colors">On Offer</Link>
               <Link href="/track-order" className="text-sm font-medium hover:text-muted-foreground transition-colors">Track My Order</Link>

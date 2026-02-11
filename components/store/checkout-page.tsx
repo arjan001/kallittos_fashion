@@ -112,13 +112,13 @@ export function CheckoutPage() {
     const orderItems = items
       .map(
         (item) =>
-          `- ${item.product.name} x${item.quantity} @ ${formatPrice(item.product.price)}${
+          `*${item.product.name}*\n${item.product.images[0] ? `Photo: ${item.product.images[0]}\n` : ""}Qty: ${item.quantity} × ${formatPrice(item.product.price)} = ${formatPrice(item.product.price * item.quantity)}${
             item.selectedVariations
-              ? ` (${Object.entries(item.selectedVariations).map(([k, v]) => `${k}: ${v}`).join(", ")})`
+              ? `\n${Object.entries(item.selectedVariations).map(([k, v]) => `${k}: ${v}`).join(", ")}`
               : ""
-          }\n  Photo: ${item.product.images[0] || "N/A"}`
+          }`
       )
-      .join("\n")
+      .join("\n\n")
 
     const message = encodeURIComponent(
       `Hi! I'd like to place an order:\n\n*ORDER DETAILS*\n${orderItems}\n\n*Subtotal:* ${formatPrice(totalPrice)}\n*Delivery:* ${
