@@ -79,10 +79,11 @@ function CollectionBanner({ collection }: { collection: string }) {
         >
           <Image
             src={src}
-            alt={`${info.label} banner`}
+            alt={`${collection === "men" ? "Men's" : collection === "women" ? "Women's" : "Kali-ttos Little Wardrobe"} denim collection banner`}
             fill
             className="object-cover"
             priority={i === 0}
+            title={`${info.label} - ${info.tagline}`}
           />
           <div className="absolute inset-0 bg-gradient-to-r from-foreground/60 via-foreground/30 to-transparent" />
         </div>
@@ -98,6 +99,7 @@ function CollectionBanner({ collection }: { collection: string }) {
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 mt-3 bg-background/20 backdrop-blur-sm text-background text-xs font-medium px-3 py-1.5 rounded-full hover:bg-background/30 transition-colors"
+              title={`Follow Kali-ttos Little Wardrobe on TikTok`}
             >
               <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.88-2.88 2.89 2.89 0 0 1 2.88-2.88c.28 0 .56.04.82.12v-3.5a6.37 6.37 0 0 0-.82-.05A6.34 6.34 0 0 0 3.15 15.3 6.34 6.34 0 0 0 9.49 21.65 6.34 6.34 0 0 0 15.83 15.3V8.76a8.3 8.3 0 0 0 4.87 1.56V6.87a4.84 4.84 0 0 1-1.11-.18Z" /></svg>
               {info.social.handle}
