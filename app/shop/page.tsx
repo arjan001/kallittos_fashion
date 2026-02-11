@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: "Shop Thrift Jeans & Denim | Kallittos Fashions Kenya",
   description:
     "Browse Kallittos Fashions full collection of curated thrift & brand-new mom jeans, skinny jeans, boyfriend jeans, denim shorts, wide-leg denim & more. Best denim designs in Kenya. Filter by category, size, and price. Delivered across Nairobi & Kenya.",
+  alternates: { canonical: "https://kallittofashions.com/shop" },
   keywords: [
     "kallittosfashions shop", "buy thrift jeans online Kenya", "shop denim Nairobi",
     "mom jeans Kenya", "skinny jeans Nairobi", "boyfriend jeans Kenya", "ripped jeans Kenya",

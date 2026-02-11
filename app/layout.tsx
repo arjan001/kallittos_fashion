@@ -95,9 +95,9 @@ export const metadata: Metadata = {
       "Shop curated thrift & brand-new mom jeans, wide-leg denim, vintage jackets. Style meets sustainability. Delivered across Kenya.",
     images: [
       {
-        url: "https://images.unsplash.com/photo-1542272604-787c3835535d?w=1200&h=630&fit=crop",
-        width: 1200,
-        height: 630,
+        url: `${siteUrl}/logo-kf.png`,
+        width: 512,
+        height: 512,
         alt: "Kallittos Fashions - Curated Thrift & New Denim Collection",
       },
     ],
@@ -107,7 +107,7 @@ export const metadata: Metadata = {
     title: "Kallittos | Curated Thrift & New Denim \u2013 Jeans & Jackets",
     description:
       "Shop curated thrift & brand-new mom jeans, wide-leg denim, and vintage jackets at Kallittos Fashions. Style meets sustainability.",
-    images: ["https://images.unsplash.com/photo-1542272604-787c3835535d?w=1200&h=630&fit=crop"],
+    images: [`${siteUrl}/logo-kf.png`],
     creator: "@kallittos",
   },
   robots: {
@@ -137,6 +137,7 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="/logo-kf.png" type="image/png" />
         <link rel="apple-touch-icon" href="/logo-kf.png" />
+        <link rel="manifest" href="/manifest.json" />
         <meta name="google-site-verification" content="FY2n9Zc_Z1exsOdQJ4xsDTMW_P-UBehhQPI_Ana4nCg" />
         <meta name="format-detection" content="telephone=no" />
         <link rel="author" href="https://oneplusafrica.com/" />
@@ -174,7 +175,7 @@ export default function RootLayout({
                 "https://www.tiktok.com/@kallittos",
               ],
               priceRange: "KES 1,000 - KES 5,000",
-              image: "https://images.unsplash.com/photo-1542272604-787c3835535d?w=1200&h=630&fit=crop",
+              image: "https://kallittofashions.com/logo-kf.png",
               brand: {
                 "@type": "Brand",
                 name: "Kallittos Fashions",
