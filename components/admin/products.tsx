@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import { toast } from "sonner"
-import { Plus, Pencil, Trash2, X, Upload, Search, Download, FileUp, ImagePlus, Loader2 } from "lucide-react"
+import { Plus, Pencil, Trash2, X, Upload, Search, Download, FileUp, ImagePlus, Loader2, Eye } from "lucide-react"
 import { AdminShell } from "./admin-shell"
 import { formatPrice } from "@/lib/format"
 import type { Product, ProductVariation } from "@/lib/types"
@@ -77,6 +77,7 @@ export function AdminProducts() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [isUploading, setIsUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [previewProduct, setPreviewProduct] = useState<Product | null>(null)
 
   const filtered = products.filter((p) => {
     const matchesSearch =
@@ -561,6 +562,10 @@ export function AdminProducts() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setPreviewProduct(product)}>
+                          <Eye className="h-3.5 w-3.5" />
+                          <span className="sr-only">Preview</span>
+                        </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(product)}>
                           <Pencil className="h-3.5 w-3.5" />
                           <span className="sr-only">Edit</span>
@@ -966,6 +971,128 @@ export function AdminProducts() {
                   ) : (
                     <><FileUp className="h-4 w-4 mr-2" />Import {importPreview.length} Products</>
                   )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+      {/* Product Preview Modal */}
+      <Dialog open={!!previewProduct} onOpenChange={(open) => { if (!open) setPreviewProduct(null) }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-background text-foreground">
+          <DialogHeader>
+            <DialogTitle className="font-serif">Product Details</DialogTitle>
+          </DialogHeader>
+
+          {previewProduct && (
+            <div className="space-y-6 mt-2">
+              {/* Images */}
+              {previewProduct.images.length > 0 && (
+                <div className="space-y-2">
+                  <div className="relative w-full aspect-square max-h-[320px] bg-secondary rounded-sm overflow-hidden">
+                    <Image
+                      src={previewProduct.images[0]}
+                      alt={previewProduct.name}
+                      fill
+                      className="object-contain"
+                    />
+                  </div>
+                  {previewProduct.images.length > 1 && (
+                    <div className="flex gap-2 overflow-x-auto pb-1">
+                      {previewProduct.images.map((img, i) => (
+                        <div key={i} className="relative w-16 h-20 bg-secondary rounded-sm overflow-hidden flex-shrink-0 border border-border">
+                          <Image src={img} alt={`${previewProduct.name} ${i + 1}`} fill className="object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Name & Badges */}
+              <div>
+                <h2 className="text-xl font-serif font-bold">{previewProduct.name}</h2>
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  <span className="text-xs bg-secondary text-muted-foreground px-2 py-0.5 rounded-sm">{previewProduct.category}</span>
+                  {previewProduct.isNew && (
+                    <span className="text-[10px] font-semibold bg-foreground text-background px-2 py-0.5 uppercase tracking-wider">New</span>
+                  )}
+                  {previewProduct.isOnOffer && (
+                    <span className="text-[10px] font-semibold bg-foreground text-background px-2 py-0.5 uppercase tracking-wider">
+                      {previewProduct.offerPercentage ? `${previewProduct.offerPercentage}% Off` : "Offer"}
+                    </span>
+                  )}
+                  {previewProduct.inStock ? (
+                    <span className="text-[10px] font-semibold text-green-700 bg-green-100 px-2 py-0.5 uppercase tracking-wider rounded-sm">In Stock</span>
+                  ) : (
+                    <span className="text-[10px] font-semibold text-destructive bg-destructive/10 px-2 py-0.5 uppercase tracking-wider rounded-sm">Out of Stock</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Pricing */}
+              <div className="flex items-baseline gap-3">
+                <span className="text-2xl font-bold">{formatPrice(previewProduct.price)}</span>
+                {previewProduct.originalPrice && previewProduct.originalPrice > previewProduct.price && (
+                  <span className="text-base text-muted-foreground line-through">{formatPrice(previewProduct.originalPrice)}</span>
+                )}
+              </div>
+
+              {/* Description */}
+              <div>
+                <h3 className="text-sm font-semibold mb-1.5">Description</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{previewProduct.description}</p>
+              </div>
+
+              {/* Variations */}
+              {previewProduct.variations && previewProduct.variations.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold mb-2">Variations</h3>
+                  <div className="space-y-3">
+                    {previewProduct.variations.map((v, i) => (
+                      <div key={i}>
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{v.type}</span>
+                        <div className="flex flex-wrap gap-1.5 mt-1">
+                          {v.options.map((opt, j) => (
+                            <span key={j} className="text-xs border border-border px-2.5 py-1 rounded-sm">{opt}</span>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Tags */}
+              {previewProduct.tags.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold mb-2">Tags</h3>
+                  <div className="flex flex-wrap gap-1.5">
+                    {previewProduct.tags.map((tag, i) => (
+                      <span key={i} className="text-xs bg-secondary text-muted-foreground px-2 py-0.5 rounded-sm">{tag}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Meta */}
+              <div className="border-t border-border pt-4 text-xs text-muted-foreground space-y-1">
+                <p><span className="font-medium text-foreground">Slug:</span> {previewProduct.slug}</p>
+                <p><span className="font-medium text-foreground">Created:</span> {new Date(previewProduct.createdAt).toLocaleDateString("en-KE", { year: "numeric", month: "long", day: "numeric" })}</p>
+                <p><span className="font-medium text-foreground">Images:</span> {previewProduct.images.length}</p>
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end gap-3 pt-2 border-t border-border">
+                <Button variant="outline" onClick={() => setPreviewProduct(null)} className="bg-transparent">
+                  Close
+                </Button>
+                <Button
+                  onClick={() => { setPreviewProduct(null); openEdit(previewProduct) }}
+                  className="bg-foreground text-background hover:bg-foreground/90"
+                >
+                  <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                  Edit Product
                 </Button>
               </div>
             </div>
