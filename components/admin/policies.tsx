@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
+import { AdminShell } from "./admin-shell"
 import { Save, Loader2, Eye, FileText, Search, ChevronRight, Bold, Italic, Underline, List, ListOrdered, Link2, Heading2, Undo2, Redo2, Code } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -185,14 +186,21 @@ export function AdminPolicies() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
+      <AdminShell title="Policies">
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      </AdminShell>
     )
   }
 
   return (
+    <AdminShell title="Policies">
     <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-serif font-bold">Policies</h1>
+        <p className="text-sm text-muted-foreground mt-1">Manage your store policies. Changes are live on the website immediately.</p>
+      </div>
       {/* Policy tabs */}
       <div className="flex flex-wrap gap-2">
         {policies.map((p) => (
