@@ -7,6 +7,8 @@ import { ArrowRight } from "lucide-react"
 import type { HeroBanner } from "@/lib/types"
 import useSWR from "swr"
 
+import { useCarouselItems } from "@/hooks/use-carousel"
+
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 const BABYSHOP_CAROUSEL_IMAGES = [
@@ -49,31 +51,44 @@ const FALLBACK_BANNERS: HeroBanner[] = [
 ]
 
 function BabyshopCarousel({ banner }: { banner: HeroBanner }) {
+  const { items: carouselItems } = useCarouselItems("babyshop")
   const [currentSlide, setCurrentSlide] = useState(0)
 
+  // Use carousel items from DB, fallback to hardcoded images
+  const slides = carouselItems.length > 0 ? carouselItems : 
+    BABYSHOP_CAROUSEL_IMAGES.map((url, idx) => ({
+      id: `fallback-${idx}`,
+      image_url: url,
+      title: banner.title,
+      description: banner.subtitle || undefined,
+      link_url: banner.linkUrl,
+    }))
+
   const nextSlide = useCallback(() => {
-    setCurrentSlide((prev) => (prev + 1) % BABYSHOP_CAROUSEL_IMAGES.length)
-  }, [])
+    setCurrentSlide((prev) => (prev + 1) % slides.length)
+  }, [slides.length])
 
   useEffect(() => {
     const interval = setInterval(nextSlide, 4000)
     return () => clearInterval(interval)
   }, [nextSlide])
 
+  const currentItem = slides[currentSlide]
+
   return (
     <Link
-      href={banner.linkUrl}
+      href={currentItem.link_url || banner.linkUrl}
       className="lg:col-span-8 relative overflow-hidden rounded-sm min-h-[400px] lg:min-h-[520px] flex items-end group"
     >
       <div className="absolute inset-0 z-0">
-        {BABYSHOP_CAROUSEL_IMAGES.map((src, i) => (
+        {slides.map((slide, i) => (
           <div
-            key={src}
+            key={slide.id}
             className="absolute inset-0 transition-opacity duration-700"
             style={{ opacity: i === currentSlide ? 1 : 0 }}
           >
             <Image
-              src={src}
+              src={slide.image_url}
               alt={`${banner.title} - carousel slide ${i + 1}`}
               fill
               className="object-cover group-hover:scale-105 transition-transform duration-700"
@@ -86,10 +101,10 @@ function BabyshopCarousel({ banner }: { banner: HeroBanner }) {
       <div className="relative z-10 p-8 lg:p-12 w-full">
         <p className="text-background/80 text-xs tracking-[0.3em] uppercase mb-2">Baby Essentials</p>
         <h1 className="text-background text-4xl lg:text-5xl font-serif font-bold leading-tight text-balance">
-          {banner.title}
+          {currentItem.title || banner.title}
         </h1>
         <p className="text-background/70 text-sm mt-3 leading-relaxed max-w-md">
-          {banner.subtitle}
+          {currentItem.description || banner.subtitle}
         </p>
         <span className="inline-flex items-center gap-2 mt-5 bg-background text-foreground px-7 py-3 text-sm font-medium group-hover:bg-background/90 transition-colors">
           {banner.buttonText}

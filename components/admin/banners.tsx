@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { CarouselAdmin } from "./carousel-manager"
 import useSWR from "swr"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
@@ -146,6 +147,7 @@ export function AdminBanners() {
           <TabsList className="bg-secondary">
             <TabsTrigger value="hero">Hero Banners ({heroBanners.length})</TabsTrigger>
             <TabsTrigger value="banners">Banners ({banners.length})</TabsTrigger>
+            <TabsTrigger value="carousel">Carousels</TabsTrigger>
             <TabsTrigger value="navbar">Navbar Offers ({navOffers.length})</TabsTrigger>
             <TabsTrigger value="popup">Popup Offers ({popupOffers.length})</TabsTrigger>
           </TabsList>
@@ -195,6 +197,24 @@ export function AdminBanners() {
                 </div>
               </div>
             ))}
+          </TabsContent>
+
+          <TabsContent value="carousel" className="mt-6 space-y-6">
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-lg font-semibold">Babyshop Carousel</h2>
+                <p className="text-sm text-muted-foreground mt-1">Manage the kids & babyshop category carousel items</p>
+              </div>
+              <CarouselAdmin category="babyshop" />
+            </div>
+
+            <div className="border-t pt-6">
+              <div>
+                <h2 className="text-lg font-semibold">Kids Carousel</h2>
+                <p className="text-sm text-muted-foreground mt-1">Manage the kids category carousel items</p>
+              </div>
+              <CarouselAdmin category="kids" />
+            </div>
           </TabsContent>
 
           <TabsContent value="navbar" className="mt-6 space-y-4">
