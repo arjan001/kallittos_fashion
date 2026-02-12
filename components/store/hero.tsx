@@ -5,11 +5,7 @@ import Image from "next/image"
 import { useState, useEffect, useCallback } from "react"
 import { ArrowRight } from "lucide-react"
 import type { HeroBanner } from "@/lib/types"
-import useSWR from "swr"
-
 import { useCarouselItems } from "@/hooks/use-carousel"
-
-const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 const BABYSHOP_CAROUSEL_IMAGES = [
   "/banners/babyshop-collection.jpg",
