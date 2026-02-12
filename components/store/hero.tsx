@@ -6,6 +6,9 @@ import { useState, useEffect, useCallback } from "react"
 import { ArrowRight } from "lucide-react"
 import type { HeroBanner } from "@/lib/types"
 import { useCarouselItems } from "@/hooks/use-carousel"
+import useSWR from "swr"
+
+const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 const BABYSHOP_CAROUSEL_IMAGES = [
   "/banners/babyshop-collection.jpg",
