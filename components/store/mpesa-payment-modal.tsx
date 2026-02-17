@@ -12,6 +12,14 @@ const TILL_NUMBER = "8 4 9 2 7 3 5"
 const TILL_DIGITS = TILL_NUMBER.split(" ")
 const BUSINESS_NAME = "KALLITTOS FASHION"
 
+// Caritas Microfinance Details
+const CARITAS_PAYBILL = "8998990"
+const CARITAS_PAYBILL_DIGITS = CARITAS_PAYBILL.split("")
+const CARITAS_ACCOUNT = "809695"
+const CARITAS_ACCOUNT_DIGITS = CARITAS_ACCOUNT.split("")
+const CARITAS_ACCOUNT_NAME = "ABIGAIL MWIKALI MUIA"
+const CARITAS_ORG = "CARITAS MICROFINANCE"
+
 interface MpesaPaymentModalProps {
   isOpen: boolean
   onClose: () => void
@@ -20,10 +28,11 @@ interface MpesaPaymentModalProps {
 }
 
 export function MpesaPaymentModal({ isOpen, onClose, total, onPaymentConfirmed }: MpesaPaymentModalProps) {
+  const [paymentMethod, setPaymentMethod] = useState<"till" | "caritas">("till")
   const [mpesaCode, setMpesaCode] = useState("")
   const [mpesaPhone, setMpesaPhone] = useState("")
   const [mpesaMessage, setMpesaMessage] = useState("")
-  const [copied, setCopied] = useState(false)
+  const [copied, setCopied] = useState("")
   const [isConfirming, setIsConfirming] = useState(false)
 
   if (!isOpen) return null
@@ -32,8 +41,20 @@ export function MpesaPaymentModal({ isOpen, onClose, total, onPaymentConfirmed }
 
   const copyTill = () => {
     navigator.clipboard.writeText(tillRaw)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    setCopied("till")
+    setTimeout(() => setCopied(""), 2000)
+  }
+
+  const copyCaritasPaybill = () => {
+    navigator.clipboard.writeText(CARITAS_PAYBILL)
+    setCopied("paybill")
+    setTimeout(() => setCopied(""), 2000)
+  }
+
+  const copyCaritasAccount = () => {
+    navigator.clipboard.writeText(CARITAS_ACCOUNT)
+    setCopied("account")
+    setTimeout(() => setCopied(""), 2000)
   }
 
   const canSubmit = mpesaMessage.trim().length >= 10
@@ -94,50 +115,152 @@ export function MpesaPaymentModal({ isOpen, onClose, total, onPaymentConfirmed }
           </div>
         </div>
 
+        {/* Payment Method Tabs */}
+        <div className="flex border-b">
+          <button
+            type="button"
+            onClick={() => setPaymentMethod("till")}
+            className={`flex-1 py-3 px-4 text-sm font-semibold transition-colors ${
+              paymentMethod === "till"
+                ? "border-b-2 border-[#00843D] text-[#00843D] bg-[#00843D]/5"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Direct Till
+          </button>
+          <button
+            type="button"
+            onClick={() => setPaymentMethod("caritas")}
+            className={`flex-1 py-3 px-4 text-sm font-semibold transition-colors ${
+              paymentMethod === "caritas"
+                ? "border-b-2 border-[#DC143C] text-[#DC143C] bg-[#DC143C]/5"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Via Caritas
+          </button>
+        </div>
+
         <div className="px-6 pb-6">
-          {/* Till Number Card */}
-          <div className="bg-background border-2 border-[#00843D]/20 rounded-sm -mt-3 relative z-10 shadow-lg">
-            <div className="text-center pt-5 pb-3">
-              <p className="text-[#00843D] font-bold text-sm tracking-wider uppercase">
-                Buy Goods Till Number
-              </p>
-            </div>
-
-            <div className="flex justify-center gap-1.5 px-4 pb-3">
-              {TILL_DIGITS.map((digit, i) => (
-                <div key={i} className="w-10 h-12 border-2 border-foreground/80 rounded-sm flex items-center justify-center">
-                  <span className="text-[#00843D] text-xl font-extrabold">{digit}</span>
+          {/* Direct Till Payment */}
+          {paymentMethod === "till" && (
+            <>
+              {/* Till Number Card */}
+              <div className="bg-background border-2 border-[#00843D]/20 rounded-sm -mt-3 relative z-10 shadow-lg">
+                <div className="text-center pt-5 pb-3">
+                  <p className="text-[#00843D] font-bold text-sm tracking-wider uppercase">
+                    Buy Goods Till Number
+                  </p>
                 </div>
-              ))}
-            </div>
 
-            <div className="text-center pb-4">
-              <p className="text-foreground font-extrabold text-lg tracking-wide">{BUSINESS_NAME}</p>
-            </div>
+                <div className="flex justify-center gap-1.5 px-4 pb-3">
+                  {TILL_DIGITS.map((digit, i) => (
+                    <div key={i} className="w-10 h-12 border-2 border-foreground/80 rounded-sm flex items-center justify-center">
+                      <span className="text-[#00843D] text-xl font-extrabold">{digit}</span>
+                    </div>
+                  ))}
+                </div>
 
-            <div className="flex justify-center pb-4">
-              <button
-                type="button"
-                onClick={copyTill}
-                className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground bg-secondary/60 hover:bg-secondary px-4 py-2 rounded-sm transition-colors"
-              >
-                {copied ? <Check className="h-3.5 w-3.5 text-[#00843D]" /> : <Copy className="h-3.5 w-3.5" />}
-                {copied ? "Copied!" : "Copy Till Number"}
-              </button>
-            </div>
+                <div className="text-center pb-4">
+                  <p className="text-foreground font-extrabold text-lg tracking-wide">{BUSINESS_NAME}</p>
+                </div>
 
-            <div className="flex justify-end px-4 pb-3">
-              <div className="text-right">
-                <p className="text-[#00843D] text-xs font-bold leading-tight">Safaricom</p>
-                <p className="text-[10px] text-muted-foreground font-semibold tracking-wider">M-PESA</p>
+                <div className="flex justify-center pb-4">
+                  <button
+                    type="button"
+                    onClick={copyTill}
+                    className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground bg-secondary/60 hover:bg-secondary px-4 py-2 rounded-sm transition-colors"
+                  >
+                    {copied === "till" ? <Check className="h-3.5 w-3.5 text-[#00843D]" /> : <Copy className="h-3.5 w-3.5" />}
+                    {copied === "till" ? "Copied!" : "Copy Till Number"}
+                  </button>
+                </div>
+
+                <div className="flex justify-end px-4 pb-3">
+                  <div className="text-right">
+                    <p className="text-[#00843D] text-xs font-bold leading-tight">Safaricom</p>
+                    <p className="text-[10px] text-muted-foreground font-semibold tracking-wider">M-PESA</p>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            </>
+          )}
+
+          {/* Caritas Microfinance Payment */}
+          {paymentMethod === "caritas" && (
+            <>
+              {/* Caritas Payment Card - Red Design */}
+              <div className="bg-[#DC143C] rounded-sm -mt-3 relative z-10 shadow-lg overflow-hidden">
+                {/* Caritas Header */}
+                <div className="text-center pt-4 pb-2">
+                  <p className="text-white font-black text-lg tracking-wider">LIPA NA CARITAS</p>
+                </div>
+
+                <div className="px-6 py-3 space-y-4">
+                  {/* Paybill Section */}
+                  <div className="text-center">
+                    <p className="text-white/90 text-xs font-bold tracking-widest mb-2">PAYBILL NUMBER</p>
+                    <div className="flex justify-center gap-1">
+                      {CARITAS_PAYBILL_DIGITS.map((digit, i) => (
+                        <div key={i} className="w-9 h-11 border-2 border-white bg-white/10 rounded-sm flex items-center justify-center">
+                          <span className="text-white text-lg font-black">{digit}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Account Section */}
+                  <div className="text-center">
+                    <p className="text-white/90 text-xs font-bold tracking-widest mb-2">ACCOUNT NUMBER</p>
+                    <div className="flex justify-center gap-1">
+                      {CARITAS_ACCOUNT_DIGITS.map((digit, i) => (
+                        <div key={i} className="w-9 h-11 border-2 border-white bg-white/10 rounded-sm flex items-center justify-center">
+                          <span className="text-white text-lg font-black">{digit}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Account Name */}
+                  <div className="text-center pt-2 border-t border-white/30">
+                    <p className="text-white text-xs font-bold tracking-wide">{CARITAS_ACCOUNT_NAME}</p>
+                    <p className="text-white/80 text-[11px] font-semibold mt-1">{CARITAS_ORG}</p>
+                  </div>
+                </div>
+
+                {/* Copy Buttons */}
+                <div className="px-6 py-3 space-y-2 bg-white/10">
+                  <button
+                    type="button"
+                    onClick={copyCaritasPaybill}
+                    className="w-full flex items-center justify-center gap-2 text-xs font-semibold text-white bg-black/20 hover:bg-black/30 px-3 py-2 rounded-sm transition-colors"
+                  >
+                    {copied === "paybill" ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                    {copied === "paybill" ? "Paybill Copied!" : "Copy Paybill"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={copyCaritasAccount}
+                    className="w-full flex items-center justify-center gap-2 text-xs font-semibold text-white bg-black/20 hover:bg-black/30 px-3 py-2 rounded-sm transition-colors"
+                  >
+                    {copied === "account" ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                    {copied === "account" ? "Account Copied!" : "Copy Account"}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
 
           {/* Amount to pay */}
-          <div className="mt-4 bg-[#00843D]/5 border border-[#00843D]/15 rounded-sm p-4 flex items-center justify-between">
+          <div className={`mt-4 rounded-sm p-4 flex items-center justify-between border ${
+            paymentMethod === "caritas"
+              ? "bg-[#DC143C]/5 border-[#DC143C]/15"
+              : "bg-[#00843D]/5 border-[#00843D]/15"
+          }`}>
             <span className="text-sm font-medium text-muted-foreground">Amount to Pay:</span>
-            <span className="text-xl font-bold text-[#00843D]">{formatPrice(total)}</span>
+            <span className={`text-xl font-bold ${paymentMethod === "caritas" ? "text-[#DC143C]" : "text-[#00843D]"}`}>
+              {formatPrice(total)}
+            </span>
           </div>
 
           {/* Paste M-PESA Message */}
@@ -176,7 +299,11 @@ export function MpesaPaymentModal({ isOpen, onClose, total, onPaymentConfirmed }
           <Button
             onClick={handleConfirm}
             disabled={!canSubmit || isConfirming}
-            className="w-full h-12 mt-5 bg-[#00843D] text-white hover:bg-[#006B32] text-sm font-semibold disabled:opacity-40"
+            className={`w-full h-12 mt-5 text-white text-sm font-semibold disabled:opacity-40 ${
+              paymentMethod === "caritas"
+                ? "bg-[#DC143C] hover:bg-[#B8102E]"
+                : "bg-[#00843D] hover:bg-[#006B32]"
+            }`}
           >
             {isConfirming ? (
               <>
