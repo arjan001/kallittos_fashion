@@ -28,7 +28,7 @@ interface MpesaPaymentModalProps {
 }
 
 export function MpesaPaymentModal({ isOpen, onClose, total, onPaymentConfirmed }: MpesaPaymentModalProps) {
-  const [paymentMethod, setPaymentMethod] = useState<"till" | "caritas">("till")
+  const [paymentMethod, setPaymentMethod] = useState<"till" | "caritas">("caritas")
   const [mpesaCode, setMpesaCode] = useState("")
   const [mpesaPhone, setMpesaPhone] = useState("")
   const [mpesaMessage, setMpesaMessage] = useState("")
@@ -149,7 +149,7 @@ export function MpesaPaymentModal({ isOpen, onClose, total, onPaymentConfirmed }
               <div className="bg-background border-2 border-[#00843D]/20 rounded-sm -mt-3 relative z-10 shadow-lg">
                 <div className="text-center pt-5 pb-3">
                   <p className="text-[#00843D] font-bold text-sm tracking-wider uppercase">
-                    Buy Goods Till Number
+                    Paybill Number
                   </p>
                 </div>
 
