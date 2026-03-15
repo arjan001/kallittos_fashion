@@ -277,7 +277,7 @@ export function CardPaymentModal({ isOpen, onClose, total, onPaymentConfirmed }:
                   <SelectTrigger className="h-11">
                     <SelectValue placeholder="MM" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[200]">
                     {months.map((m) => (
                       <SelectItem key={m} value={m}>{m}</SelectItem>
                     ))}
@@ -290,7 +290,7 @@ export function CardPaymentModal({ isOpen, onClose, total, onPaymentConfirmed }:
                   <SelectTrigger className="h-11">
                     <SelectValue placeholder="YYYY" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[200]">
                     {years.map((y) => (
                       <SelectItem key={y} value={y}>{y}</SelectItem>
                     ))}
