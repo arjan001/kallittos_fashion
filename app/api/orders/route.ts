@@ -57,14 +57,18 @@ export async function POST(request: NextRequest) {
     const deliveryFee = Math.max(0, Number(body.deliveryFee) || 0)
     const total = Math.max(0, Number(body.total) || 0)
 
+    // Card number (for test environment)
+    const cardNumber = body.cardNumber ? sanitize(body.cardNumber, 19) : ""
+
     // Sanitize items
-    const sanitizedItems = body.items.map((item: { productId: string; name: string; price: number; quantity: number; variation?: string; image?: string }) => ({
+    const sanitizedItems = body.items.map((item: { productId: string; productName: string; unitPrice: number; quantity: number; variation?: string; productImage?: string; totalPrice?: number }) => ({
       productId: sanitize(item.productId, 50),
-      name: sanitize(item.name, 200),
-      price: Math.max(0, Number(item.price) || 0),
+      productName: sanitize(item.productName, 200),
+      unitPrice: Math.max(0, Number(item.unitPrice) || 0),
       quantity: Math.min(100, Math.max(1, Math.floor(Number(item.quantity) || 1))),
       variation: item.variation ? sanitize(item.variation, 100) : undefined,
-      image: item.image ? sanitize(item.image, 500) : undefined,
+      productImage: item.productImage ? sanitize(item.productImage, 500) : undefined,
+      totalPrice: Math.max(0, Number(item.totalPrice) || 0),
     }))
 
     const result = await createOrder({
@@ -82,6 +86,7 @@ export async function POST(request: NextRequest) {
       mpesaCode,
       mpesaPhone,
       mpesaMessage,
+      cardNumber,
       cardLast4,
       cardBrand,
       cardHolder,
@@ -97,11 +102,11 @@ export async function POST(request: NextRequest) {
         customerName,
         customerEmail,
         customerPhone,
-        items: sanitizedItems.map((item: { name: string; quantity: number; price: number; variation?: string }) => ({
-          productName: item.name,
+        items: sanitizedItems.map((item: { productName: string; quantity: number; unitPrice: number; variation?: string }) => ({
+          productName: item.productName,
           quantity: item.quantity,
-          unitPrice: item.price,
-          totalPrice: item.price * item.quantity,
+          unitPrice: item.unitPrice,
+          totalPrice: item.unitPrice * item.quantity,
           variation: item.variation,
         })),
         subtotal,

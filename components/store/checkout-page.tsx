@@ -26,6 +26,7 @@ export function CheckoutPage() {
   const [deliveryLocations, setDeliveryLocations] = useState<DeliveryLocation[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [orderResult, setOrderResult] = useState<{ orderNumber: string; paymentMethod?: string } | null>(null)
+  const [orderError, setOrderError] = useState<string | null>(null)
   const [showMpesa, setShowMpesa] = useState(false)
   const [showCard, setShowCard] = useState(false)
   const [formData, setFormData] = useState({
@@ -78,6 +79,7 @@ export function CheckoutPage() {
   const handleNormalCheckout = async () => {
     if (!isFormValid) return
     setIsSubmitting(true)
+    setOrderError(null)
     try {
       const res = await fetch("/api/orders", {
         method: "POST",
@@ -88,9 +90,12 @@ export function CheckoutPage() {
       if (res.ok) {
         setOrderResult(data)
         clearCart()
+      } else {
+        setOrderError(data.error || "Failed to place order. Please try again.")
       }
     } catch (err) {
       console.error("Order failed:", err)
+      setOrderError("Something went wrong. Please try again.")
     } finally {
       setIsSubmitting(false)
     }
@@ -144,6 +149,7 @@ export function CheckoutPage() {
   const handleMpesaConfirmed = async (mpesaCode: string, mpesaPhone: string, mpesaMessage: string) => {
     setShowMpesa(false)
     setIsSubmitting(true)
+    setOrderError(null)
     try {
       const payload = {
         ...buildOrderPayload("mpesa"),
@@ -162,9 +168,12 @@ export function CheckoutPage() {
       if (res.ok) {
         setOrderResult({ orderNumber: data.orderNumber, paymentMethod: "mpesa" })
         clearCart()
+      } else {
+        setOrderError(data.error || "Failed to place order. Please try again.")
       }
     } catch (err) {
       console.error("M-Pesa order failed:", err)
+      setOrderError("Something went wrong. Please try again.")
     } finally {
       setIsSubmitting(false)
     }
@@ -184,6 +193,7 @@ export function CheckoutPage() {
   }) => {
     setShowCard(false)
     setIsSubmitting(true)
+    setOrderError(null)
     try {
       const cardLast4 = cardDetails.cardNumber.slice(-4)
       const firstDigit = cardDetails.cardNumber[0]
@@ -209,9 +219,12 @@ export function CheckoutPage() {
       if (res.ok) {
         setOrderResult({ orderNumber: data.orderNumber, paymentMethod: "card" })
         clearCart()
+      } else {
+        setOrderError(data.error || "Failed to place order. Please try again.")
       }
     } catch (err) {
       console.error("Card order failed:", err)
+      setOrderError("Something went wrong. Please try again.")
     } finally {
       setIsSubmitting(false)
     }
@@ -560,6 +573,12 @@ export function CheckoutPage() {
                 </div>
 
                 <div className="mt-6 space-y-3">
+                  {orderError && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-sm text-sm">
+                      {orderError}
+                    </div>
+                  )}
+
                   {/* Card Payment */}
                   <Button
                     onClick={handleCardPayment}
