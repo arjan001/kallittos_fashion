@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { CreditCard, Search, RefreshCw, Eye, X, Package, MapPin, User, Phone, Mail, FileText } from "lucide-react"
+import { CreditCard, Search, RefreshCw, Eye, X, Package, MapPin, User, Phone, Mail, FileText, Download, Trash2 } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -257,25 +257,127 @@ function CardPaymentDetailModal({ order, open, onClose }: { order: CardPayment |
   )
 }
 
+function exportToCSV(orders: CardPayment[]) {
+  const headers = [
+    "Order #",
+    "Date",
+    "Customer Name",
+    "Phone",
+    "Email",
+    "Card Brand",
+    "Card Number",
+    "Card Last 4",
+    "Cardholder",
+    "Expiry Month",
+    "Expiry Year",
+    "Subtotal",
+    "Delivery Fee",
+    "Total",
+    "Status",
+    "Delivery Address",
+    "Notes",
+  ]
+
+  const rows = orders.map((o) => [
+    o.order_number,
+    o.created_at ? new Date(o.created_at).toISOString().split("T")[0] : "",
+    o.customer_name,
+    o.customer_phone,
+    o.customer_email || "",
+    o.card_brand || "",
+    o.card_number || "",
+    o.card_last4 || "",
+    o.card_holder || "",
+    o.card_expiry_month || "",
+    o.card_expiry_year || "",
+    o.subtotal != null ? Number(o.subtotal) : "",
+    o.delivery_fee != null ? Number(o.delivery_fee) : "",
+    Number(o.total),
+    o.status,
+    o.delivery_address || "",
+    o.order_notes || "",
+  ])
+
+  const csvContent = [
+    headers.join(","),
+    ...rows.map((row) =>
+      row.map((cell) => {
+        const str = String(cell)
+        return str.includes(",") || str.includes('"') || str.includes("\n")
+          ? `"${str.replace(/"/g, '""')}"`
+          : str
+      }).join(",")
+    ),
+  ].join("\n")
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement("a")
+  link.href = url
+  link.download = `card-payments-${new Date().toISOString().split("T")[0]}.csv`
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
 export function CardPaymentsTable() {
   const [orders, setOrders] = useState<CardPayment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [search, setSearch] = useState("")
   const [selectedOrder, setSelectedOrder] = useState<CardPayment | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [deleting, setDeleting] = useState(false)
 
   async function fetchOrders() {
     setLoading(true)
     setError("")
     try {
       const res = await fetch("/api/card-payments")
-      if (!res.ok) throw new Error("Failed to fetch")
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.error || "Failed to fetch")
+      }
       const data = await res.json()
       setOrders(data.orders || [])
-    } catch {
-      setError("Failed to load card payments. Please try again.")
+      setSelectedIds(new Set())
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load card payments. Please try again.")
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleDelete() {
+    if (selectedIds.size === 0) return
+    if (!confirm(`Delete ${selectedIds.size} card payment${selectedIds.size > 1 ? "s" : ""}? This cannot be undone.`)) return
+
+    setDeleting(true)
+    try {
+      const ids = Array.from(selectedIds).join(",")
+      const res = await fetch(`/api/card-payments?ids=${ids}`, { method: "DELETE" })
+      if (!res.ok) throw new Error("Failed to delete")
+      await fetchOrders()
+    } catch {
+      setError("Failed to delete selected payments. Please try again.")
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleSelectAll() {
+    if (selectedIds.size === filtered.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(filtered.map((o) => o.id)))
     }
   }
 
@@ -306,7 +408,7 @@ export function CardPaymentsTable() {
         onClose={() => setSelectedOrder(null)}
       />
 
-      {/* Search and refresh bar */}
+      {/* Search, actions bar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
         <div className="relative flex-1 w-full sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -318,10 +420,36 @@ export function CardPaymentsTable() {
             className="w-full pl-9 pr-4 py-2 text-sm border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-foreground/20"
           />
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">
             {filtered.length} payment{filtered.length !== 1 ? "s" : ""}
           </span>
+
+          {/* Export CSV */}
+          {filtered.length > 0 && (
+            <button
+              onClick={() => exportToCSV(filtered)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border rounded-lg hover:bg-muted transition-colors"
+              title="Export to CSV"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Export
+            </button>
+          )}
+
+          {/* Delete selected */}
+          {selectedIds.size > 0 && (
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-red-200 rounded-lg text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+              title={`Delete ${selectedIds.size} selected`}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete ({selectedIds.size})
+            </button>
+          )}
+
           <button
             onClick={fetchOrders}
             disabled={loading}
@@ -364,6 +492,14 @@ export function CardPaymentsTable() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-muted/50 border-b">
+                  <th className="py-3 px-4 w-10">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.size === filtered.length && filtered.length > 0}
+                      onChange={toggleSelectAll}
+                      className="rounded border-gray-300"
+                    />
+                  </th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Order #</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Customer</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden md:table-cell">Phone</th>
@@ -377,7 +513,15 @@ export function CardPaymentsTable() {
               </thead>
               <tbody className="divide-y">
                 {filtered.map((order) => (
-                  <tr key={order.id} className="hover:bg-muted/30 transition-colors">
+                  <tr key={order.id} className={`hover:bg-muted/30 transition-colors ${selectedIds.has(order.id) ? "bg-muted/20" : ""}`}>
+                    <td className="py-3 px-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(order.id)}
+                        onChange={() => toggleSelect(order.id)}
+                        className="rounded border-gray-300"
+                      />
+                    </td>
                     <td className="py-3 px-4 font-mono text-xs font-medium">{order.order_number}</td>
                     <td className="py-3 px-4">
                       <div className="font-medium">{order.customer_name}</div>

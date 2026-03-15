@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     .order("created_at", { ascending: false })
 
   if (orderNumber) {
-    query = query.eq("order_number", orderNumber)
+    query = query.or(`order_number.eq.${orderNumber},order_no.eq.${orderNumber}`)
   } else if (phone) {
     // Sanitize phone to prevent wildcard injection
     const cleanPhone = sanitizePhoneSearch(phone).replace(/^(\+?254|0)/, "")
@@ -55,13 +55,13 @@ export async function GET(request: NextRequest) {
 
   const result = orders.map((o) => ({
     id: o.id,
-    orderNumber: o.order_number,
+    orderNumber: o.order_number || o.order_no,
     customer: o.customer_name,
     phone: o.customer_phone,
     items: (itemsByOrder[o.id] || []).map((item) => ({
       name: item.product_name,
       qty: item.quantity,
-      price: Number(item.unit_price),
+      price: Number(item.product_price || item.unit_price || 0),
       variation: item.variation || undefined,
       image: item.product_image || undefined,
     })),
