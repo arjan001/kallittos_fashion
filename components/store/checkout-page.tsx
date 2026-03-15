@@ -9,6 +9,7 @@ import { TopBar } from "./top-bar"
 import { Navbar } from "./navbar"
 import { Footer } from "./footer"
 import { MpesaPaymentModal } from "./mpesa-payment-modal"
+import { CardPaymentModal } from "./card-payment-modal"
 import { useCart } from "@/lib/cart-context"
 import { formatPrice } from "@/lib/format"
 import type { DeliveryLocation } from "@/lib/types"
@@ -26,6 +27,7 @@ export function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [orderResult, setOrderResult] = useState<{ orderNumber: string; paymentMethod?: string } | null>(null)
   const [showMpesa, setShowMpesa] = useState(false)
+  const [showCard, setShowCard] = useState(false)
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -168,10 +170,55 @@ export function CheckoutPage() {
     }
   }
 
+  const handleCardPayment = () => {
+    if (!isFormValid) return
+    setShowCard(true)
+  }
+
+  const handleCardConfirmed = async (cardDetails: {
+    cardNumber: string
+    expiryMonth: string
+    expiryYear: string
+    cvv: string
+    cardHolder: string
+  }) => {
+    setShowCard(false)
+    setIsSubmitting(true)
+    try {
+      const cardLast4 = cardDetails.cardNumber.slice(-4)
+      const firstDigit = cardDetails.cardNumber[0]
+      const cardBrand = firstDigit === "4" ? "visa" : "mastercard"
+
+      const payload = {
+        ...buildOrderPayload("website"),
+        paymentMethod: "card",
+        cardLast4,
+        cardBrand,
+        cardHolder: cardDetails.cardHolder,
+        status: "pending",
+      }
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setOrderResult({ orderNumber: data.orderNumber, paymentMethod: "card" })
+        clearCart()
+      }
+    } catch (err) {
+      console.error("Card order failed:", err)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   // Modern order success screen
   if (orderResult) {
     const isWhatsApp = orderResult.orderNumber === "WhatsApp"
     const isMpesa = orderResult.paymentMethod === "mpesa"
+    const isCard = orderResult.paymentMethod === "card"
     const trackUrl = isWhatsApp ? "/track-order" : `/track-order/${orderResult.orderNumber}`
 
     return (
@@ -217,6 +264,22 @@ export function CheckoutPage() {
                 </div>
               )}
 
+              {isCard && (
+                <div className="bg-[#1A1F71]/5 border-b border-[#1A1F71]/15 px-5 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#1A1F71]/10 flex items-center justify-center flex-shrink-0">
+                      <CheckCircle className="h-5 w-5 text-[#1A1F71]" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-[#1A1F71]">Card Payment Approved</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Your card payment has been processed successfully.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {isWhatsApp && (
                 <div className="bg-[#25D366]/5 border-b border-[#25D366]/15 px-5 py-4">
                   <div className="flex items-center gap-3">
@@ -233,7 +296,7 @@ export function CheckoutPage() {
                 </div>
               )}
 
-              {!isMpesa && !isWhatsApp && (
+              {!isMpesa && !isWhatsApp && !isCard && (
                 <div className="bg-secondary/50 border-b border-border px-5 py-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
@@ -494,6 +557,32 @@ export function CheckoutPage() {
                 </div>
 
                 <div className="mt-6 space-y-3">
+                  {/* Card Payment */}
+                  <Button
+                    onClick={handleCardPayment}
+                    disabled={!isFormValid || isSubmitting}
+                    className="w-full h-12 text-sm font-semibold disabled:opacity-40 bg-[#1A1F71] text-white hover:bg-[#141860]"
+                  >
+                    <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+                      <line x1="1" y1="10" x2="23" y2="10" />
+                    </svg>
+                    Pay with Card
+                    <span className="ml-2 flex items-center gap-1 opacity-80">
+                      <svg className="h-4 w-6" viewBox="0 0 780 500" fill="none"><rect width="780" height="500" rx="40" fill="#fff"/><path d="M293 349l33-196h54l-34 196H293z" fill="#1A1F71"/><path d="M544 157c-11-4-27-8-48-8-53 0-90 27-90 65 0 28 26 44 47 53 21 10 28 16 28 24 0 13-17 19-32 19-21 0-33-3-50-10l-7-3-8 44c13 5 36 10 60 10 56 0 92-26 93-67 0-22-14-39-45-53-19-9-30-15-30-24 0-8 10-17 31-17 17 0 30 4 40 8l5 2 7-43z" fill="#1A1F71"/></svg>
+                      <svg className="h-4 w-6" viewBox="0 0 780 500" fill="none"><rect width="780" height="500" rx="40" fill="#fff"/><circle cx="330" cy="250" r="110" fill="#EB001B"/><circle cx="450" cy="250" r="110" fill="#F79E1B"/><path d="M390 168c26 22 43 55 43 92s-17 70-43 92c-26-22-43-55-43-92s17-70 43-92z" fill="#FF5F00"/></svg>
+                    </span>
+                  </Button>
+
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-border" />
+                    </div>
+                    <div className="relative flex justify-center text-xs">
+                      <span className="bg-secondary/50 px-3 text-muted-foreground">or</span>
+                    </div>
+                  </div>
+
                   {/* M-PESA Payment */}
                   <Button
                     onClick={handleMpesaPayment}
@@ -545,6 +634,13 @@ export function CheckoutPage() {
         onClose={() => setShowMpesa(false)}
         total={freeShipping ? totalPrice : grandTotal}
         onPaymentConfirmed={handleMpesaConfirmed}
+      />
+
+      <CardPaymentModal
+        isOpen={showCard}
+        onClose={() => setShowCard(false)}
+        total={freeShipping ? totalPrice : grandTotal}
+        onPaymentConfirmed={handleCardConfirmed}
       />
     </div>
   )
