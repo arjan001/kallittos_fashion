@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
 
   const result = (orders || []).map((o) => ({
     id: o.id,
-    orderNo: o.order_number || o.order_no || "",
+    orderNo: o.order_number || "",
     customer: o.customer_name,
     phone: o.customer_phone,
     email: o.customer_email || "",

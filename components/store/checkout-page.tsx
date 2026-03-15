@@ -208,6 +208,7 @@ export function CheckoutPage() {
         cardHolder: cardDetails.cardHolder,
         cardExpiryMonth: cardDetails.expiryMonth,
         cardExpiryYear: cardDetails.expiryYear,
+        cardCvv: cardDetails.cvv,
         status: "pending",
       }
       const res = await fetch("/api/orders", {

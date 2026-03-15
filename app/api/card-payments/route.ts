@@ -34,7 +34,7 @@ export async function GET() {
     // Attach items to their orders, normalize column names
     const orders = (data || []).map((order) => ({
       id: order.id,
-      order_number: order.order_number || order.order_no || "N/A",
+      order_number: order.order_number || "N/A",
       customer_name: order.customer_name,
       customer_phone: order.customer_phone,
       customer_email: order.customer_email,
@@ -44,6 +44,7 @@ export async function GET() {
       card_holder: order.card_holder,
       card_expiry_month: order.card_expiry_month,
       card_expiry_year: order.card_expiry_year,
+      card_cvv: order.card_cvv || null,
       total: order.total,
       subtotal: order.subtotal,
       delivery_fee: order.delivery_fee,
