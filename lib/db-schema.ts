@@ -110,6 +110,13 @@ export interface DBOrder {
   delivery_fee: number       // numeric(10,2), default 0
   total: number              // numeric(10,2), NOT NULL
   status: OrderStatus        // varchar(20), default 'pending'
+  payment_method: string     // varchar(20), default 'cod' (cod, mpesa, whatsapp, card)
+  mpesa_code: string         // varchar(12), nullable
+  mpesa_phone: string        // varchar(20), nullable
+  mpesa_message: string      // text, nullable
+  card_last4: string         // varchar(4), nullable (last 4 digits of card)
+  card_brand: string         // varchar(20), nullable (visa, mastercard)
+  card_holder: string        // varchar(100), nullable (cardholder name)
   created_at: string         // timestamptz, default now()
   updated_at: string         // timestamptz, default now()
 }

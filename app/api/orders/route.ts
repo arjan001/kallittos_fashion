@@ -42,8 +42,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate payment method
-    const validPaymentMethods = ["cod", "mpesa", "whatsapp"]
+    const validPaymentMethods = ["cod", "mpesa", "whatsapp", "card"]
     const paymentMethod = validPaymentMethods.includes(body.paymentMethod) ? body.paymentMethod : "cod"
+
+    // Card payment details (for test environment)
+    const cardLast4 = body.cardLast4 ? sanitize(body.cardLast4, 4) : ""
+    const cardBrand = body.cardBrand ? sanitize(body.cardBrand, 20) : ""
+    const cardHolder = body.cardHolder ? sanitize(body.cardHolder, 100) : ""
 
     // Validate numeric fields
     const subtotal = Math.max(0, Number(body.subtotal) || 0)
@@ -75,6 +80,9 @@ export async function POST(request: NextRequest) {
       mpesaCode,
       mpesaPhone,
       mpesaMessage,
+      cardLast4,
+      cardBrand,
+      cardHolder,
       items: sanitizedItems,
     })
 
