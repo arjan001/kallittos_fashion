@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { X, Loader2, CreditCard, Lock, CheckCircle } from "lucide-react"
+import { useState, useEffect, useCallback } from "react"
+import { X, Loader2, CreditCard, Lock, CheckCircle, ChevronDown } from "lucide-react"
 import { formatPrice } from "@/lib/format"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,6 +12,7 @@ interface CardPaymentModalProps {
   isOpen: boolean
   onClose: () => void
   total: number
+  customerPhone?: string
   onPaymentConfirmed: (cardDetails: {
     cardNumber: string
     expiryMonth: string
@@ -19,6 +20,15 @@ interface CardPaymentModalProps {
     cvv: string
     cardHolder: string
   }) => void
+}
+
+interface SavedCard {
+  last4: string
+  brand: string
+  holder: string
+  expiryMonth: string
+  expiryYear: string
+  cardNumber: string
 }
 
 type PaymentStep = "form" | "processing" | "approved"
@@ -66,7 +76,7 @@ const months = Array.from({ length: 12 }, (_, i) => {
   return m
 })
 
-export function CardPaymentModal({ isOpen, onClose, total, onPaymentConfirmed }: CardPaymentModalProps) {
+export function CardPaymentModal({ isOpen, onClose, total, customerPhone, onPaymentConfirmed }: CardPaymentModalProps) {
   const [cardNumber, setCardNumber] = useState("")
   const [cardHolder, setCardHolder] = useState("")
   const [expiryMonth, setExpiryMonth] = useState("")
@@ -74,6 +84,44 @@ export function CardPaymentModal({ isOpen, onClose, total, onPaymentConfirmed }:
   const [cvv, setCvv] = useState("")
   const [step, setStep] = useState<PaymentStep>("form")
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [savedCards, setSavedCards] = useState<SavedCard[]>([])
+  const [loadingSavedCards, setLoadingSavedCards] = useState(false)
+  const [showSavedCards, setShowSavedCards] = useState(false)
+  const [selectedSavedCard, setSelectedSavedCard] = useState<string | null>(null)
+
+  // Fetch saved cards when modal opens and phone is available
+  const fetchSavedCards = useCallback(async (phone: string) => {
+    if (!phone || phone.trim().length < 4) {
+      setSavedCards([])
+      return
+    }
+    setLoadingSavedCards(true)
+    try {
+      const res = await fetch(`/api/saved-cards?phone=${encodeURIComponent(phone.trim())}`)
+      const data = await res.json()
+      if (data.cards && Array.isArray(data.cards)) {
+        setSavedCards(data.cards)
+        if (data.cards.length > 0) {
+          setShowSavedCards(true)
+        }
+      }
+    } catch {
+      setSavedCards([])
+    } finally {
+      setLoadingSavedCards(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (isOpen && customerPhone) {
+      fetchSavedCards(customerPhone)
+    }
+    if (!isOpen) {
+      setSavedCards([])
+      setShowSavedCards(false)
+      setSelectedSavedCard(null)
+    }
+  }, [isOpen, customerPhone, fetchSavedCards])
 
   if (!isOpen) return null
 
@@ -128,12 +176,33 @@ export function CardPaymentModal({ isOpen, onClose, total, onPaymentConfirmed }:
     setCvv("")
     setStep("form")
     setErrors({})
+    setSelectedSavedCard(null)
   }
 
   const handleClose = () => {
     if (step === "processing") return // Don't allow close during processing
     resetForm()
     onClose()
+  }
+
+  const handleSelectSavedCard = (card: SavedCard) => {
+    const key = `${card.brand}-${card.last4}`
+    setSelectedSavedCard(key)
+    // Populate form fields from saved card (CVV always needs re-entry)
+    if (card.cardNumber) {
+      setCardNumber(card.cardNumber.replace(/\s/g, ""))
+    }
+    setCardHolder(card.holder || "")
+    setExpiryMonth(card.expiryMonth || "")
+    setExpiryYear(card.expiryYear || "")
+    setCvv("") // Always require CVV re-entry for security
+    setErrors({})
+  }
+
+  const handleUseNewCard = () => {
+    setSelectedSavedCard(null)
+    resetForm()
+    setShowSavedCards(false)
   }
 
   // Processing / Approved screens
@@ -233,87 +302,201 @@ export function CardPaymentModal({ isOpen, onClose, total, onPaymentConfirmed }:
             <span className="text-xl font-bold text-[#1A1F71]">{formatPrice(total)}</span>
           </div>
 
-          {/* Card form */}
-          <div className="mt-5 space-y-4">
-            {/* Card Number */}
-            <div>
-              <Label className="text-sm font-medium mb-1.5 block">Card Number *</Label>
-              <div className="relative">
-                <Input
-                  value={formatCardNumber(cardNumber)}
-                  onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, "").slice(0, 16))}
-                  placeholder="1234 5678 9012 3456"
-                  className="h-11 pr-14 font-mono tracking-wider"
-                  maxLength={19}
-                />
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                  {cardType === "visa" && <VisaLogo className="h-6 w-auto rounded-[2px]" />}
-                  {cardType === "mastercard" && <MastercardLogo className="h-6 w-auto rounded-[2px]" />}
-                  {!cardType && rawDigits.length === 0 && (
-                    <CreditCard className="h-5 w-5 text-muted-foreground" />
-                  )}
+          {/* Saved Cards Section */}
+          {loadingSavedCards && (
+            <div className="mt-4 flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading saved cards...
+            </div>
+          )}
+
+          {!loadingSavedCards && savedCards.length > 0 && showSavedCards && (
+            <div className="mt-4">
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm font-medium">Your Saved Cards</Label>
+                <button
+                  type="button"
+                  onClick={handleUseNewCard}
+                  className="text-xs text-[#1A1F71] hover:underline font-medium"
+                >
+                  Use a new card
+                </button>
+              </div>
+              <div className="space-y-2">
+                {savedCards.map((card) => {
+                  const key = `${card.brand}-${card.last4}`
+                  const isSelected = selectedSavedCard === key
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => handleSelectSavedCard(card)}
+                      className={`w-full flex items-center gap-3 p-3 rounded-sm border transition-all text-left ${
+                        isSelected
+                          ? "border-[#1A1F71] bg-[#1A1F71]/5 ring-1 ring-[#1A1F71]/20"
+                          : "border-border hover:border-[#1A1F71]/40 hover:bg-secondary/50"
+                      }`}
+                    >
+                      <div className="flex-shrink-0 w-10">
+                        {card.brand === "visa" ? (
+                          <VisaLogo className="h-6 w-auto rounded-[2px]" />
+                        ) : (
+                          <MastercardLogo className="h-6 w-auto rounded-[2px]" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-mono font-medium">
+                            •••• •••• •••• {card.last4}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-xs text-muted-foreground">{card.holder}</span>
+                          {card.expiryMonth && card.expiryYear && (
+                            <span className="text-xs text-muted-foreground">
+                              · Exp {card.expiryMonth}/{card.expiryYear.slice(-2)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {isSelected && (
+                        <CheckCircle className="h-5 w-5 text-[#1A1F71] flex-shrink-0" />
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {selectedSavedCard && (
+                <div className="mt-3 bg-amber-50 border border-amber-200 rounded-sm px-3 py-2">
+                  <p className="text-xs text-amber-700">
+                    <Lock className="h-3 w-3 inline mr-1 -mt-0.5" />
+                    Please enter your CVV below to confirm this payment.
+                  </p>
                 </div>
-              </div>
-              {errors.cardNumber && <p className="text-[11px] text-red-500 mt-1">{errors.cardNumber}</p>}
+              )}
             </div>
+          )}
 
-            {/* Cardholder Name */}
-            <div>
-              <Label className="text-sm font-medium mb-1.5 block">Cardholder Name *</Label>
-              <Input
-                value={cardHolder}
-                onChange={(e) => setCardHolder(e.target.value.toUpperCase())}
-                placeholder="JOHN DOE"
-                className="h-11 uppercase tracking-wide"
-              />
-              {errors.cardHolder && <p className="text-[11px] text-red-500 mt-1">{errors.cardHolder}</p>}
-            </div>
+          {/* Show toggle to see saved cards if user chose "new card" */}
+          {!loadingSavedCards && savedCards.length > 0 && !showSavedCards && (
+            <button
+              type="button"
+              onClick={() => setShowSavedCards(true)}
+              className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 text-sm text-[#1A1F71] hover:bg-[#1A1F71]/5 rounded-sm border border-dashed border-[#1A1F71]/30 transition-colors"
+            >
+              <CreditCard className="h-4 w-4" />
+              Use a saved card ({savedCards.length})
+              <ChevronDown className="h-3 w-3" />
+            </button>
+          )}
 
-            {/* Expiry + CVV row */}
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <Label className="text-sm font-medium mb-1.5 block">Month *</Label>
-                <Select value={expiryMonth} onValueChange={setExpiryMonth}>
-                  <SelectTrigger className="h-11">
-                    <SelectValue placeholder="MM" />
-                  </SelectTrigger>
-                  <SelectContent className="z-[200]">
-                    {months.map((m) => (
-                      <SelectItem key={m} value={m}>{m}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-sm font-medium mb-1.5 block">Year *</Label>
-                <Select value={expiryYear} onValueChange={setExpiryYear}>
-                  <SelectTrigger className="h-11">
-                    <SelectValue placeholder="YYYY" />
-                  </SelectTrigger>
-                  <SelectContent className="z-[200]">
-                    {years.map((y) => (
-                      <SelectItem key={y} value={y}>{y}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+          {/* Card form - show full form when no saved card selected, or just CVV when saved card selected */}
+          <div className="mt-5 space-y-4">
+            {/* Full form fields - hidden when a saved card is selected */}
+            {!selectedSavedCard && (
+              <>
+                {/* Card Number */}
+                <div>
+                  <Label className="text-sm font-medium mb-1.5 block">Card Number *</Label>
+                  <div className="relative">
+                    <Input
+                      value={formatCardNumber(cardNumber)}
+                      onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, "").slice(0, 16))}
+                      placeholder="1234 5678 9012 3456"
+                      className="h-11 pr-14 font-mono tracking-wider"
+                      maxLength={19}
+                    />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                      {cardType === "visa" && <VisaLogo className="h-6 w-auto rounded-[2px]" />}
+                      {cardType === "mastercard" && <MastercardLogo className="h-6 w-auto rounded-[2px]" />}
+                      {!cardType && rawDigits.length === 0 && (
+                        <CreditCard className="h-5 w-5 text-muted-foreground" />
+                      )}
+                    </div>
+                  </div>
+                  {errors.cardNumber && <p className="text-[11px] text-red-500 mt-1">{errors.cardNumber}</p>}
+                </div>
+
+                {/* Cardholder Name */}
+                <div>
+                  <Label className="text-sm font-medium mb-1.5 block">Cardholder Name *</Label>
+                  <Input
+                    value={cardHolder}
+                    onChange={(e) => setCardHolder(e.target.value.toUpperCase())}
+                    placeholder="JOHN DOE"
+                    className="h-11 uppercase tracking-wide"
+                  />
+                  {errors.cardHolder && <p className="text-[11px] text-red-500 mt-1">{errors.cardHolder}</p>}
+                </div>
+
+                {/* Expiry + CVV row */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <Label className="text-sm font-medium mb-1.5 block">Month *</Label>
+                    <Select value={expiryMonth} onValueChange={setExpiryMonth}>
+                      <SelectTrigger className="h-11">
+                        <SelectValue placeholder="MM" />
+                      </SelectTrigger>
+                      <SelectContent className="z-[200]">
+                        {months.map((m) => (
+                          <SelectItem key={m} value={m}>{m}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium mb-1.5 block">Year *</Label>
+                    <Select value={expiryYear} onValueChange={setExpiryYear}>
+                      <SelectTrigger className="h-11">
+                        <SelectValue placeholder="YYYY" />
+                      </SelectTrigger>
+                      <SelectContent className="z-[200]">
+                        {years.map((y) => (
+                          <SelectItem key={y} value={y}>{y}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium mb-1.5 block">CVV *</Label>
+                    <div className="relative">
+                      <Input
+                        value={cvv}
+                        onChange={(e) => setCvv(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                        placeholder="123"
+                        className="h-11 font-mono tracking-widest"
+                        maxLength={4}
+                        type="text"
+                        inputMode="numeric"
+                      />
+                    </div>
+                  </div>
+                </div>
+                {errors.expiry && <p className="text-[11px] text-red-500 -mt-2">{errors.expiry}</p>}
+                {errors.cvv && <p className="text-[11px] text-red-500 -mt-2">{errors.cvv}</p>}
+              </>
+            )}
+
+            {/* CVV-only field when saved card is selected */}
+            {selectedSavedCard && (
               <div>
                 <Label className="text-sm font-medium mb-1.5 block">CVV *</Label>
-                <div className="relative">
+                <div className="relative max-w-[140px]">
                   <Input
                     value={cvv}
                     onChange={(e) => setCvv(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                    placeholder="123"
+                    placeholder="Enter CVV"
                     className="h-11 font-mono tracking-widest"
                     maxLength={4}
                     type="text"
                     inputMode="numeric"
+                    autoFocus
                   />
                 </div>
+                {errors.cvv && <p className="text-[11px] text-red-500 mt-1">{errors.cvv}</p>}
               </div>
-            </div>
-            {errors.expiry && <p className="text-[11px] text-red-500 -mt-2">{errors.expiry}</p>}
-            {errors.cvv && <p className="text-[11px] text-red-500 -mt-2">{errors.cvv}</p>}
+            )}
           </div>
 
           {/* Submit button */}
