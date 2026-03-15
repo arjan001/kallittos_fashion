@@ -666,6 +666,7 @@ export function CheckoutPage() {
         isOpen={showCard}
         onClose={() => setShowCard(false)}
         total={freeShipping ? totalPrice : grandTotal}
+        customerPhone={formData.phone}
         onPaymentConfirmed={handleCardConfirmed}
       />
     </div>
