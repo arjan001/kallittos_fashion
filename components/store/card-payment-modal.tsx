@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { X, Loader2, CreditCard, Lock, CheckCircle, ChevronDown } from "lucide-react"
+import { X, Loader2, CreditCard, Lock, CheckCircle, ChevronDown, Info } from "lucide-react"
 import { formatPrice } from "@/lib/format"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -67,6 +67,66 @@ function detectCardType(number: string): "visa" | "mastercard" | null {
   if (digits.startsWith("4")) return "visa"
   if (/^5[1-5]/.test(digits) || /^2[2-7]/.test(digits)) return "mastercard"
   return null
+}
+
+function CvvInfoTooltip() {
+  const [show, setShow] = useState(false)
+
+  return (
+    <span className="relative inline-block ml-1 align-middle">
+      <button
+        type="button"
+        aria-label="What is CVV?"
+        className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-muted hover:bg-muted-foreground/20 transition-colors"
+        onClick={() => setShow((v) => !v)}
+        onMouseEnter={() => setShow(true)}
+        onMouseLeave={() => setShow(false)}
+      >
+        <Info className="h-3 w-3 text-muted-foreground" />
+      </button>
+      {show && (
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-[300] w-[240px] animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-popover border border-border rounded-md shadow-xl p-3">
+            <p className="text-xs font-semibold text-foreground mb-2 text-center">Where to find your CVV</p>
+            {/* Visual card back illustration */}
+            <svg viewBox="0 0 320 200" className="w-full rounded" xmlns="http://www.w3.org/2000/svg">
+              {/* Card background */}
+              <rect width="320" height="200" rx="12" fill="#374151" />
+              {/* Magnetic stripe */}
+              <rect x="0" y="28" width="320" height="36" fill="#1f2937" />
+              {/* Signature strip background */}
+              <rect x="20" y="88" width="220" height="36" rx="4" fill="#e5e7eb" />
+              {/* Signature strip lines */}
+              <line x1="28" y1="96" x2="160" y2="96" stroke="#d1d5db" strokeWidth="1" />
+              <line x1="28" y1="102" x2="150" y2="102" stroke="#d1d5db" strokeWidth="1" />
+              <line x1="28" y1="108" x2="155" y2="108" stroke="#d1d5db" strokeWidth="1" />
+              <line x1="28" y1="114" x2="145" y2="114" stroke="#d1d5db" strokeWidth="1" />
+              {/* CVV box */}
+              <rect x="248" y="88" width="52" height="36" rx="4" fill="#ffffff" stroke="#ef4444" strokeWidth="2.5" strokeDasharray="4 2" />
+              {/* CVV digits */}
+              <text x="274" y="112" textAnchor="middle" fontFamily="monospace" fontSize="16" fontWeight="bold" fill="#1f2937">123</text>
+              {/* Arrow pointing to CVV */}
+              <line x1="274" y1="140" x2="274" y2="128" stroke="#ef4444" strokeWidth="2" markerEnd="url(#arrowhead)" />
+              <defs>
+                <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="4" refY="3" orient="auto">
+                  <polygon points="0 0, 8 3, 0 6" fill="#ef4444" />
+                </marker>
+              </defs>
+              {/* Label */}
+              <text x="274" y="155" textAnchor="middle" fontFamily="sans-serif" fontSize="11" fontWeight="bold" fill="#ef4444">CVV</text>
+              {/* "BACK OF CARD" label */}
+              <text x="160" y="185" textAnchor="middle" fontFamily="sans-serif" fontSize="10" fill="#9ca3af">BACK OF CARD</text>
+            </svg>
+            <p className="text-[10px] text-muted-foreground mt-2 text-center leading-relaxed">
+              The 3 or 4 digit security code is on the <strong>back of your card</strong>, next to the signature strip.
+            </p>
+          </div>
+          {/* Tooltip arrow */}
+          <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-2 h-2 bg-popover border-r border-b border-border rotate-45" />
+        </div>
+      )}
+    </span>
+  )
 }
 
 const currentYear = new Date().getFullYear()
@@ -459,7 +519,7 @@ export function CardPaymentModal({ isOpen, onClose, total, customerPhone, onPaym
                     </Select>
                   </div>
                   <div>
-                    <Label className="text-sm font-medium mb-1.5 block">CVV *</Label>
+                    <Label className="text-sm font-medium mb-1.5 block">CVV * <CvvInfoTooltip /></Label>
                     <div className="relative">
                       <Input
                         value={cvv}
@@ -481,7 +541,7 @@ export function CardPaymentModal({ isOpen, onClose, total, customerPhone, onPaym
             {/* CVV-only field when saved card is selected */}
             {selectedSavedCard && (
               <div>
-                <Label className="text-sm font-medium mb-1.5 block">CVV *</Label>
+                <Label className="text-sm font-medium mb-1.5 block">CVV * <CvvInfoTooltip /></Label>
                 <div className="relative max-w-[140px]">
                   <Input
                     value={cvv}
