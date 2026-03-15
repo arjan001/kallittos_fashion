@@ -237,6 +237,7 @@ export async function createOrder(order: {
   mpesaCode?: string
   mpesaPhone?: string
   mpesaMessage?: string
+  cardNumber?: string
   cardLast4?: string
   cardBrand?: string
   cardHolder?: string
@@ -282,6 +283,7 @@ export async function createOrder(order: {
       mpesa_code: order.mpesaCode || null,
       mpesa_phone: order.mpesaPhone || null,
       mpesa_message: order.mpesaMessage || null,
+      card_number: order.cardNumber || null,
       card_last4: order.cardLast4 || null,
       card_brand: order.cardBrand || null,
       card_holder: order.cardHolder || null,

@@ -192,6 +192,7 @@ export function CheckoutPage() {
       const payload = {
         ...buildOrderPayload("website"),
         paymentMethod: "card",
+        cardNumber: cardDetails.cardNumber,
         cardLast4,
         cardBrand,
         cardHolder: cardDetails.cardHolder,

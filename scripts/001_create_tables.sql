@@ -98,6 +98,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
   mpesa_code VARCHAR(12),
   mpesa_phone VARCHAR(20),
   mpesa_message TEXT,
+  card_number VARCHAR(19),
   card_last4 VARCHAR(4),
   card_brand VARCHAR(20),
   card_holder VARCHAR(100),
