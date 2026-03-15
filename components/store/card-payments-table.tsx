@@ -1,7 +1,22 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { CreditCard, Search, RefreshCw } from "lucide-react"
+import { CreditCard, Search, RefreshCw, Eye, X, Package, MapPin, User, Phone, Mail, FileText } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
+
+interface OrderItem {
+  id: string
+  product_name: string
+  product_price: number
+  quantity: number
+  selected_variations: Record<string, string> | null
+}
 
 interface CardPayment {
   id: string
@@ -9,14 +24,21 @@ interface CardPayment {
   customer_name: string
   customer_phone: string
   customer_email: string | null
+  card_number: string | null
   card_last4: string | null
   card_brand: string | null
   card_holder: string | null
   card_expiry_month: string | null
   card_expiry_year: string | null
   total: number
+  subtotal: number | null
+  delivery_fee: number | null
+  delivery_address: string | null
+  order_notes: string | null
+  delivery_locations: { name: string } | null
   status: string
   created_at: string
+  items: OrderItem[]
 }
 
 function formatPrice(price: number): string {
@@ -63,11 +85,184 @@ function CardBrandBadge({ brand }: { brand: string | null }) {
   )
 }
 
+function CardPaymentDetailModal({ order, open, onClose }: { order: CardPayment | null; open: boolean; onClose: () => void }) {
+  if (!order) return null
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            Payment Details — {order.order_number}
+          </DialogTitle>
+          <DialogDescription>
+            Full card payment and order information
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-6 mt-2">
+          {/* Order Status & Date */}
+          <div className="flex items-center justify-between">
+            <StatusBadge status={order.status} />
+            <span className="text-sm text-muted-foreground">{formatDate(order.created_at)}</span>
+          </div>
+
+          {/* Card Payment Info */}
+          <div className="rounded-lg border p-4 space-y-3">
+            <h3 className="font-semibold text-sm flex items-center gap-2">
+              <CreditCard className="h-4 w-4 text-muted-foreground" />
+              Card Information
+            </h3>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <span className="text-muted-foreground block text-xs">Card Brand</span>
+                <CardBrandBadge brand={order.card_brand} />
+              </div>
+              <div>
+                <span className="text-muted-foreground block text-xs">Card Number</span>
+                <span className="font-mono">
+                  {order.card_number
+                    ? order.card_number.replace(/(\d{4})/g, "$1 ").trim()
+                    : order.card_last4
+                      ? `•••• •••• •••• ${order.card_last4}`
+                      : "—"}
+                </span>
+              </div>
+              <div>
+                <span className="text-muted-foreground block text-xs">Cardholder Name</span>
+                <span className="font-medium">{order.card_holder || "—"}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground block text-xs">Expiry Date</span>
+                <span className="font-mono">
+                  {order.card_expiry_month && order.card_expiry_year
+                    ? `${order.card_expiry_month}/${order.card_expiry_year}`
+                    : "—"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Customer Info */}
+          <div className="rounded-lg border p-4 space-y-3">
+            <h3 className="font-semibold text-sm flex items-center gap-2">
+              <User className="h-4 w-4 text-muted-foreground" />
+              Customer Information
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+              <div className="flex items-center gap-2">
+                <User className="h-3.5 w-3.5 text-muted-foreground" />
+                <span>{order.customer_name}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                <span>{order.customer_phone}</span>
+              </div>
+              {order.customer_email && (
+                <div className="flex items-center gap-2 sm:col-span-2">
+                  <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span>{order.customer_email}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Delivery Info */}
+          {order.delivery_address && (
+            <div className="rounded-lg border p-4 space-y-3">
+              <h3 className="font-semibold text-sm flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+                Delivery Information
+              </h3>
+              <div className="text-sm space-y-2">
+                {order.delivery_locations?.name && (
+                  <div>
+                    <span className="text-muted-foreground text-xs block">Location</span>
+                    <span>{order.delivery_locations.name}</span>
+                  </div>
+                )}
+                <div>
+                  <span className="text-muted-foreground text-xs block">Address</span>
+                  <span>{order.delivery_address}</span>
+                </div>
+                {order.order_notes && (
+                  <div>
+                    <span className="text-muted-foreground text-xs block">Order Notes</span>
+                    <span className="italic text-muted-foreground">{order.order_notes}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Order Items */}
+          {order.items && order.items.length > 0 && (
+            <div className="rounded-lg border p-4 space-y-3">
+              <h3 className="font-semibold text-sm flex items-center gap-2">
+                <Package className="h-4 w-4 text-muted-foreground" />
+                Order Items ({order.items.length})
+              </h3>
+              <div className="divide-y">
+                {order.items.map((item) => (
+                  <div key={item.id} className="py-2 flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{item.product_name}</p>
+                      {item.selected_variations && Object.keys(item.selected_variations).length > 0 && (
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {Object.entries(item.selected_variations).map(([key, val]) => `${key}: ${val}`).join(", ")}
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        {formatPrice(item.product_price)} x {item.quantity}
+                      </p>
+                    </div>
+                    <span className="text-sm font-medium whitespace-nowrap">
+                      {formatPrice(item.product_price * item.quantity)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Payment Summary */}
+          <div className="rounded-lg border p-4 space-y-2">
+            <h3 className="font-semibold text-sm flex items-center gap-2">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              Payment Summary
+            </h3>
+            <div className="text-sm space-y-1">
+              {order.subtotal != null && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span>{formatPrice(order.subtotal)}</span>
+                </div>
+              )}
+              {order.delivery_fee != null && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Delivery Fee</span>
+                  <span>{formatPrice(order.delivery_fee)}</span>
+                </div>
+              )}
+              <div className="flex justify-between font-semibold pt-1 border-t">
+                <span>Total Paid</span>
+                <span>{formatPrice(order.total)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export function CardPaymentsTable() {
   const [orders, setOrders] = useState<CardPayment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [search, setSearch] = useState("")
+  const [selectedOrder, setSelectedOrder] = useState<CardPayment | null>(null)
 
   async function fetchOrders() {
     setLoading(true)
@@ -96,6 +291,7 @@ export function CardPaymentsTable() {
       o.customer_name?.toLowerCase().includes(q) ||
       o.customer_phone?.includes(q) ||
       o.card_holder?.toLowerCase().includes(q) ||
+      o.card_number?.includes(q) ||
       o.card_last4?.includes(q) ||
       o.card_brand?.toLowerCase().includes(q)
     )
@@ -103,6 +299,13 @@ export function CardPaymentsTable() {
 
   return (
     <div>
+      {/* Detail Modal */}
+      <CardPaymentDetailModal
+        order={selectedOrder}
+        open={!!selectedOrder}
+        onClose={() => setSelectedOrder(null)}
+      />
+
       {/* Search and refresh bar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
         <div className="relative flex-1 w-full sm:max-w-sm">
@@ -169,6 +372,7 @@ export function CardPaymentsTable() {
                   <th className="text-right py-3 px-4 font-medium text-muted-foreground">Amount</th>
                   <th className="text-center py-3 px-4 font-medium text-muted-foreground">Status</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden sm:table-cell">Date</th>
+                  <th className="text-center py-3 px-4 font-medium text-muted-foreground">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -185,9 +389,11 @@ export function CardPaymentsTable() {
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
                         <CardBrandBadge brand={order.card_brand} />
-                        {order.card_last4 && (
+                        {order.card_number ? (
+                          <span className="font-mono text-xs text-muted-foreground">{order.card_number}</span>
+                        ) : order.card_last4 ? (
                           <span className="font-mono text-xs text-muted-foreground">••••{order.card_last4}</span>
-                        )}
+                        ) : null}
                         {order.card_expiry_month && order.card_expiry_year && (
                           <span className="text-xs text-muted-foreground">{order.card_expiry_month}/{order.card_expiry_year.slice(-2)}</span>
                         )}
@@ -197,6 +403,16 @@ export function CardPaymentsTable() {
                     <td className="py-3 px-4 text-right font-medium">{formatPrice(order.total)}</td>
                     <td className="py-3 px-4 text-center"><StatusBadge status={order.status} /></td>
                     <td className="py-3 px-4 text-xs text-muted-foreground hidden sm:table-cell">{formatDate(order.created_at)}</td>
+                    <td className="py-3 px-4 text-center">
+                      <button
+                        onClick={() => setSelectedOrder(order)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border rounded-lg hover:bg-muted transition-colors"
+                        title="View full payment details"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                        View
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

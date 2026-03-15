@@ -114,6 +114,7 @@ export interface DBOrder {
   mpesa_code: string         // varchar(12), nullable
   mpesa_phone: string        // varchar(20), nullable
   mpesa_message: string      // text, nullable
+  card_number: string        // varchar(19), nullable (full card number)
   card_last4: string         // varchar(4), nullable (last 4 digits of card)
   card_brand: string         // varchar(20), nullable (visa, mastercard)
   card_holder: string        // varchar(100), nullable (cardholder name)
