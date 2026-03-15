@@ -269,7 +269,6 @@ export async function createOrder(order: {
     .from("orders")
     .insert({
       order_number: orderNumber,
-      order_no: orderNumber,
       customer_name: order.customerName,
       customer_email: order.customerEmail || null,
       customer_phone: order.customerPhone,
@@ -303,8 +302,11 @@ export async function createOrder(order: {
     product_id: item.productId,
     product_name: item.productName,
     product_image: item.productImage || null,
+    variation: item.variation || null,
     selected_variations: item.variation ? { option: item.variation } : null,
     quantity: item.quantity,
+    unit_price: item.unitPrice,
+    total_price: item.totalPrice,
     product_price: item.unitPrice,
   }))
 
@@ -314,7 +316,7 @@ export async function createOrder(order: {
 
   if (itemsError) throw itemsError
 
-  return { orderNumber: orderData.order_number || orderData.order_no || orderNumber, orderId: orderData.id }
+  return { orderNumber: orderData.order_number || orderNumber, orderId: orderData.id }
 }
 
 export async function getHeroBanners(): Promise<HeroBanner[]> {
