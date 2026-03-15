@@ -11,7 +11,7 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from("orders")
-      .select("id, order_no, customer_name, customer_phone, customer_email, card_last4, card_brand, card_holder, card_expiry_month, card_expiry_year, total, status, created_at")
+      .select("id, order_number, customer_name, customer_phone, customer_email, card_last4, card_brand, card_holder, card_expiry_month, card_expiry_year, total, status, created_at")
       .eq("payment_method", "card")
       .order("created_at", { ascending: false })
 
