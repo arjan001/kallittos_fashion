@@ -5,7 +5,7 @@ import { CreditCard, Search, RefreshCw } from "lucide-react"
 
 interface CardPayment {
   id: string
-  order_no: string
+  order_number: string
   customer_name: string
   customer_phone: string
   customer_email: string | null
@@ -92,7 +92,7 @@ export function CardPaymentsTable() {
     if (!search) return true
     const q = search.toLowerCase()
     return (
-      o.order_no?.toLowerCase().includes(q) ||
+      o.order_number?.toLowerCase().includes(q) ||
       o.customer_name?.toLowerCase().includes(q) ||
       o.customer_phone?.includes(q) ||
       o.card_holder?.toLowerCase().includes(q) ||
@@ -174,7 +174,7 @@ export function CardPaymentsTable() {
               <tbody className="divide-y">
                 {filtered.map((order) => (
                   <tr key={order.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="py-3 px-4 font-mono text-xs font-medium">{order.order_no}</td>
+                    <td className="py-3 px-4 font-mono text-xs font-medium">{order.order_number}</td>
                     <td className="py-3 px-4">
                       <div className="font-medium">{order.customer_name}</div>
                       {order.customer_email && (
