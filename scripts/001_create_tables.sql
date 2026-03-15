@@ -94,6 +94,13 @@ CREATE TABLE IF NOT EXISTS public.orders (
   delivery_fee NUMERIC(10,2) DEFAULT 0,
   total NUMERIC(10,2) NOT NULL,
   status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending','confirmed','dispatched','delivered','cancelled')),
+  payment_method VARCHAR(20) DEFAULT 'cod' CHECK (payment_method IN ('cod','mpesa','whatsapp','card')),
+  mpesa_code VARCHAR(12),
+  mpesa_phone VARCHAR(20),
+  mpesa_message TEXT,
+  card_last4 VARCHAR(4),
+  card_brand VARCHAR(20),
+  card_holder VARCHAR(100),
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -250,6 +257,7 @@ CREATE INDEX IF NOT EXISTS idx_product_images_product ON public.product_images(p
 CREATE INDEX IF NOT EXISTS idx_product_variations_product ON public.product_variations(product_id);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON public.orders(status);
 CREATE INDEX IF NOT EXISTS idx_orders_created ON public.orders(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_orders_payment_method ON public.orders(payment_method);
 CREATE INDEX IF NOT EXISTS idx_order_items_order ON public.order_items(order_id);
 CREATE INDEX IF NOT EXISTS idx_analytics_type ON public.analytics_events(event_type);
 CREATE INDEX IF NOT EXISTS idx_analytics_created ON public.analytics_events(created_at DESC);
