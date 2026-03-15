@@ -31,14 +31,14 @@ export async function GET(request: NextRequest) {
 
   const result = (orders || []).map((o) => ({
     id: o.id,
-    orderNo: o.order_number,
+    orderNo: o.order_number || o.order_no || "",
     customer: o.customer_name,
     phone: o.customer_phone,
     email: o.customer_email || "",
     items: (itemsByOrder[o.id] || []).map((item) => ({
       name: item.product_name,
       qty: item.quantity,
-      price: Number(item.unit_price),
+      price: Number(item.product_price || item.unit_price || 0),
       variation: item.variation || undefined,
       image: item.product_image || undefined,
     })),
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     total: Number(o.total),
     location: o.delivery_locations?.name || o.delivery_address || "",
     address: o.delivery_address || "",
-    notes: o.notes || "",
+    notes: o.order_notes || o.notes || "",
     status: o.status,
     orderedVia: o.ordered_via || "website",
     paymentMethod: o.payment_method || "cod",
