@@ -513,7 +513,7 @@ export function CardPaymentModal({ isOpen, onClose, total, customerPhone, onPaym
           <div className="flex items-center justify-center gap-2 mt-4">
             <Lock className="h-3 w-3 text-muted-foreground" />
             <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
-              Your payment details are secured. This is a test environment.
+              Your payment details are secured.
             </p>
           </div>
 
