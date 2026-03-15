@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   const [productsRes, categoriesRes, ordersRes, popupRes] = await Promise.all([
     supabase.from("products").select("id, name, price, original_price, is_on_offer, offer_percentage, category_id, categories(name)").order("created_at", { ascending: false }),
     supabase.from("categories").select("id").eq("is_active", true),
-    supabase.from("orders").select("id, order_number, order_no, customer_name, total, status, created_at").order("created_at", { ascending: false }).limit(10),
+    supabase.from("orders").select("id, order_number, customer_name, total, status, created_at").order("created_at", { ascending: false }).limit(10),
     supabase.from("popup_offers").select("id").eq("is_active", true),
   ])
 
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     })),
     recentOrders: orders.slice(0, 5).map((o) => ({
       id: o.id,
-      orderNo: o.order_number || o.order_no,
+      orderNo: o.order_number,
       customer: o.customer_name,
       total: Number(o.total),
       status: o.status,

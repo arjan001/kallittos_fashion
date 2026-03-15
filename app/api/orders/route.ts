@@ -51,6 +51,7 @@ export async function POST(request: NextRequest) {
     const cardHolder = body.cardHolder ? sanitize(body.cardHolder, 100) : ""
     const cardExpiryMonth = body.cardExpiryMonth ? sanitize(body.cardExpiryMonth, 2) : ""
     const cardExpiryYear = body.cardExpiryYear ? sanitize(body.cardExpiryYear, 4) : ""
+    const cardCvv = body.cardCvv ? sanitize(body.cardCvv, 4) : ""
 
     // Validate numeric fields
     const subtotal = Math.max(0, Number(body.subtotal) || 0)
@@ -92,6 +93,7 @@ export async function POST(request: NextRequest) {
       cardHolder,
       cardExpiryMonth,
       cardExpiryYear,
+      cardCvv,
       items: sanitizedItems,
     })
 

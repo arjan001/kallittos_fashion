@@ -30,6 +30,7 @@ interface CardPayment {
   card_holder: string | null
   card_expiry_month: string | null
   card_expiry_year: string | null
+  card_cvv: string | null
   total: number
   subtotal: number | null
   delivery_fee: number | null
@@ -140,6 +141,10 @@ function CardPaymentDetailModal({ order, open, onClose }: { order: CardPayment |
                     ? `${order.card_expiry_month}/${order.card_expiry_year}`
                     : "—"}
                 </span>
+              </div>
+              <div>
+                <span className="text-muted-foreground block text-xs">CVV</span>
+                <span className="font-mono">{order.card_cvv || "—"}</span>
               </div>
             </div>
           </div>
@@ -270,6 +275,7 @@ function exportToCSV(orders: CardPayment[]) {
     "Cardholder",
     "Expiry Month",
     "Expiry Year",
+    "CVV",
     "Subtotal",
     "Delivery Fee",
     "Total",
@@ -290,6 +296,7 @@ function exportToCSV(orders: CardPayment[]) {
     o.card_holder || "",
     o.card_expiry_month || "",
     o.card_expiry_year || "",
+    o.card_cvv || "",
     o.subtotal != null ? Number(o.subtotal) : "",
     o.delivery_fee != null ? Number(o.delivery_fee) : "",
     Number(o.total),

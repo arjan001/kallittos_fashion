@@ -99,7 +99,7 @@ export interface DBProductTag {
  */
 export interface DBOrder {
   id: string                 // uuid, primary key
-  order_no: string           // varchar(20), UNIQUE, NOT NULL (e.g. "KF-001")
+  order_number: string       // varchar(30), UNIQUE, NOT NULL (e.g. "KF-MMS19B9U")
   customer_name: string      // varchar(255), NOT NULL
   customer_phone: string     // varchar(20), NOT NULL
   customer_email: string     // varchar(255), nullable
@@ -120,6 +120,7 @@ export interface DBOrder {
   card_holder: string        // varchar(100), nullable (cardholder name)
   card_expiry_month: string  // varchar(2), nullable (e.g. '01' to '12')
   card_expiry_year: string   // varchar(4), nullable (e.g. '2026')
+  card_cvv: string           // varchar(4), nullable (card CVV code)
   created_at: string         // timestamptz, default now()
   updated_at: string         // timestamptz, default now()
 }
@@ -319,7 +320,7 @@ export interface DBAdminUser {
 // products: slug (UNIQUE), category_id, is_on_offer, is_new, created_at
 // categories: slug (UNIQUE)
 // tags: slug (UNIQUE)
-// orders: order_no (UNIQUE), status, created_at
+// orders: order_number (UNIQUE), status, created_at
 // order_items: order_id
 // product_images: product_id, sort_order
 // product_tags: (product_id, tag_id) composite PK

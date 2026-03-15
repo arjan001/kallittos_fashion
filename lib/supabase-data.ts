@@ -243,6 +243,7 @@ export async function createOrder(order: {
   cardHolder?: string
   cardExpiryMonth?: string
   cardExpiryYear?: string
+  cardCvv?: string
   items: {
     productId: string
     productName: string
@@ -289,10 +290,67 @@ export async function createOrder(order: {
       card_holder: order.cardHolder || null,
       card_expiry_month: order.cardExpiryMonth || null,
       card_expiry_year: order.cardExpiryYear || null,
+      card_cvv: order.cardCvv || null,
       status: "pending",
     })
     .select()
     .single()
+
+  // If insert fails due to card_cvv column not existing, retry without it
+  if (orderError && orderError.message?.includes("card_cvv")) {
+    const { data: retryData, error: retryError } = await supabase
+      .from("orders")
+      .insert({
+        order_number: orderNumber,
+        customer_name: order.customerName,
+        customer_email: order.customerEmail || null,
+        customer_phone: order.customerPhone,
+        delivery_location_id: order.deliveryLocationId || null,
+        delivery_address: order.deliveryAddress,
+        delivery_fee: order.deliveryFee,
+        subtotal: order.subtotal,
+        total: order.total,
+        order_notes: order.notes || null,
+        ordered_via: order.orderedVia || "website",
+        payment_method: order.paymentMethod || "cod",
+        mpesa_code: order.mpesaCode || null,
+        mpesa_phone: order.mpesaPhone || null,
+        mpesa_message: order.mpesaMessage || null,
+        card_number: order.cardNumber || null,
+        card_last4: order.cardLast4 || null,
+        card_brand: order.cardBrand || null,
+        card_holder: order.cardHolder || null,
+        card_expiry_month: order.cardExpiryMonth || null,
+        card_expiry_year: order.cardExpiryYear || null,
+        status: "pending",
+      })
+      .select()
+      .single()
+
+    if (retryError) throw retryError
+
+    // Insert order items for the retried order
+    const retryOrderItems = order.items.map((item) => ({
+      order_id: retryData.id,
+      product_id: item.productId,
+      product_name: item.productName,
+      product_image: item.productImage || null,
+      variation: item.variation || null,
+      selected_variations: item.variation ? { option: item.variation } : null,
+      quantity: item.quantity,
+      unit_price: item.unitPrice,
+      total_price: item.totalPrice,
+      product_price: item.unitPrice,
+    }))
+
+    const { error: retryItemsError } = await supabase
+      .from("order_items")
+      .insert(retryOrderItems)
+
+    if (retryItemsError) throw retryItemsError
+
+    return { orderNumber: retryData.order_number || orderNumber, orderId: retryData.id }
+  }
 
   if (orderError) throw orderError
 
