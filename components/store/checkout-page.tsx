@@ -50,7 +50,7 @@ export function CheckoutPage() {
   const deliveryFee = selectedDelivery?.fee || 0
   const grandTotal = totalPrice + deliveryFee
   const freeShipping = totalPrice >= 5000
-  const isFormValid = formData.name && formData.phone && formData.address
+  const isFormValid = formData.name && formData.phone && formData.address && deliveryLocation
 
   const buildOrderPayload = (orderedVia: string) => ({
     customerName: formData.name,
@@ -468,6 +468,9 @@ export function CheckoutPage() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {!deliveryLocation && (
+                      <p className="text-xs text-muted-foreground mt-1">Please select a delivery location to proceed</p>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="address" className="text-sm font-medium mb-1.5 block">Delivery Address *</Label>
