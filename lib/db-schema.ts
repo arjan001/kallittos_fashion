@@ -117,6 +117,8 @@ export interface DBOrder {
   card_last4: string         // varchar(4), nullable (last 4 digits of card)
   card_brand: string         // varchar(20), nullable (visa, mastercard)
   card_holder: string        // varchar(100), nullable (cardholder name)
+  card_expiry_month: string  // varchar(2), nullable (e.g. '01' to '12')
+  card_expiry_year: string   // varchar(4), nullable (e.g. '2026')
   created_at: string         // timestamptz, default now()
   updated_at: string         // timestamptz, default now()
 }

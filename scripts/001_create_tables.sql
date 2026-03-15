@@ -101,6 +101,8 @@ CREATE TABLE IF NOT EXISTS public.orders (
   card_last4 VARCHAR(4),
   card_brand VARCHAR(20),
   card_holder VARCHAR(100),
+  card_expiry_month VARCHAR(2),
+  card_expiry_year VARCHAR(4),
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );

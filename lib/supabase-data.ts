@@ -240,6 +240,8 @@ export async function createOrder(order: {
   cardLast4?: string
   cardBrand?: string
   cardHolder?: string
+  cardExpiryMonth?: string
+  cardExpiryYear?: string
   items: {
     productId: string
     productName: string
@@ -283,6 +285,8 @@ export async function createOrder(order: {
       card_last4: order.cardLast4 || null,
       card_brand: order.cardBrand || null,
       card_holder: order.cardHolder || null,
+      card_expiry_month: order.cardExpiryMonth || null,
+      card_expiry_year: order.cardExpiryYear || null,
       status: "pending",
     })
     .select()

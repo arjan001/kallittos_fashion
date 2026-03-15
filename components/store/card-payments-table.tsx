@@ -12,6 +12,8 @@ interface CardPayment {
   card_last4: string | null
   card_brand: string | null
   card_holder: string | null
+  card_expiry_month: string | null
+  card_expiry_year: string | null
   total: number
   status: string
   created_at: string
@@ -185,6 +187,9 @@ export function CardPaymentsTable() {
                         <CardBrandBadge brand={order.card_brand} />
                         {order.card_last4 && (
                           <span className="font-mono text-xs text-muted-foreground">••••{order.card_last4}</span>
+                        )}
+                        {order.card_expiry_month && order.card_expiry_year && (
+                          <span className="text-xs text-muted-foreground">{order.card_expiry_month}/{order.card_expiry_year.slice(-2)}</span>
                         )}
                       </div>
                     </td>

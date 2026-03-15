@@ -195,6 +195,8 @@ export function CheckoutPage() {
         cardLast4,
         cardBrand,
         cardHolder: cardDetails.cardHolder,
+        cardExpiryMonth: cardDetails.expiryMonth,
+        cardExpiryYear: cardDetails.expiryYear,
         status: "pending",
       }
       const res = await fetch("/api/orders", {

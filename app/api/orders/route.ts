@@ -49,6 +49,8 @@ export async function POST(request: NextRequest) {
     const cardLast4 = body.cardLast4 ? sanitize(body.cardLast4, 4) : ""
     const cardBrand = body.cardBrand ? sanitize(body.cardBrand, 20) : ""
     const cardHolder = body.cardHolder ? sanitize(body.cardHolder, 100) : ""
+    const cardExpiryMonth = body.cardExpiryMonth ? sanitize(body.cardExpiryMonth, 2) : ""
+    const cardExpiryYear = body.cardExpiryYear ? sanitize(body.cardExpiryYear, 4) : ""
 
     // Validate numeric fields
     const subtotal = Math.max(0, Number(body.subtotal) || 0)
@@ -83,6 +85,8 @@ export async function POST(request: NextRequest) {
       cardLast4,
       cardBrand,
       cardHolder,
+      cardExpiryMonth,
+      cardExpiryYear,
       items: sanitizedItems,
     })
 
