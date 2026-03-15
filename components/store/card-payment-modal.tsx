@@ -306,7 +306,8 @@ export function CardPaymentModal({ isOpen, onClose, total, onPaymentConfirmed }:
                     placeholder="123"
                     className="h-11 font-mono tracking-widest"
                     maxLength={4}
-                    type="password"
+                    type="text"
+                    inputMode="numeric"
                   />
                 </div>
               </div>
