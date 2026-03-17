@@ -4,12 +4,13 @@ import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ChevronRight, Minus, Plus, X, Truck, Loader2, CheckCircle, Package, MapPin } from "lucide-react"
+import { ChevronRight, Minus, Plus, X, Truck, Loader2, CheckCircle, Package, MapPin, Zap } from "lucide-react"
 import { TopBar } from "./top-bar"
 import { Navbar } from "./navbar"
 import { Footer } from "./footer"
 import { MpesaPaymentModal } from "./mpesa-payment-modal"
 import { CardPaymentModal } from "./card-payment-modal"
+import { BoltDeliveryModal } from "./bolt-delivery-modal"
 import { useCart } from "@/lib/cart-context"
 import { formatPrice } from "@/lib/format"
 import type { DeliveryLocation } from "@/lib/types"
@@ -29,6 +30,14 @@ export function CheckoutPage() {
   const [orderError, setOrderError] = useState<string | null>(null)
   const [showMpesa, setShowMpesa] = useState(false)
   const [showCard, setShowCard] = useState(false)
+  const [showBolt, setShowBolt] = useState(false)
+  const [boltDelivery, setBoltDelivery] = useState<{
+    pickupAddress: string
+    dropoffAddress: string
+    contactPhone: string
+    estimatedFee: number
+    notes: string
+  } | null>(null)
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -48,9 +57,12 @@ export function CheckoutPage() {
 
   const selectedDelivery = deliveryLocations.find((l) => l.id === deliveryLocation)
   const deliveryFee = selectedDelivery?.fee || 0
-  const grandTotal = totalPrice + deliveryFee
+  const boltFee = boltDelivery?.estimatedFee || 0
+  const grandTotal = totalPrice + deliveryFee + boltFee
   const freeShipping = totalPrice >= 5000
   const isFormValid = formData.name && formData.phone && formData.address && deliveryLocation
+  const isPickupMtaani = selectedDelivery?.name?.toLowerCase().includes("pick up mtaani")
+  const isPickup = selectedDelivery?.name?.toLowerCase().includes("pick")
 
   const buildOrderPayload = (orderedVia: string) => ({
     customerName: formData.name,
@@ -59,8 +71,13 @@ export function CheckoutPage() {
     deliveryLocationId: deliveryLocation || undefined,
     deliveryAddress: formData.address,
     deliveryFee: freeShipping ? 0 : deliveryFee,
+    boltDeliveryFee: boltDelivery ? boltFee : 0,
+    boltDeliveryRequested: !!boltDelivery,
+    boltDropoffAddress: boltDelivery?.dropoffAddress || undefined,
+    boltContactPhone: boltDelivery?.contactPhone || undefined,
+    boltNotes: boltDelivery?.notes || undefined,
     subtotal: totalPrice,
-    total: freeShipping ? totalPrice : grandTotal,
+    total: freeShipping ? totalPrice + boltFee : grandTotal,
     notes: formData.notes || undefined,
     orderedVia,
     items: items.map((item) => ({
@@ -182,6 +199,22 @@ export function CheckoutPage() {
   const handleCardPayment = () => {
     if (!isFormValid) return
     setShowCard(true)
+  }
+
+  const handleBoltDelivery = () => {
+    if (!isFormValid) return
+    setShowBolt(true)
+  }
+
+  const handleBoltRequested = (boltDetails: {
+    pickupAddress: string
+    dropoffAddress: string
+    contactPhone: string
+    estimatedFee: number
+    notes: string
+  }) => {
+    setBoltDelivery(boltDetails)
+    setShowBolt(false)
   }
 
   const handleCardConfirmed = async (cardDetails: {
@@ -333,8 +366,12 @@ export function CheckoutPage() {
                 <div className="flex items-center gap-3">
                   <Package className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                   <p className="text-sm text-muted-foreground">
-                    {selectedDelivery?.name?.toLowerCase().includes("pick") 
+                    {isPickupMtaani
+                      ? "Your order will be ready for collection at the selected Pick Up Mtaani point."
+                      : isPickup
                       ? "Your order will be ready for pick-up at our store."
+                      : boltDelivery
+                      ? "A Bolt driver will deliver your order directly to your address."
                       : "Your order will be delivered to your address."
                     }
                   </p>
@@ -343,6 +380,14 @@ export function CheckoutPage() {
                   <div className="flex items-center gap-3">
                     <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                     <p className="text-sm text-muted-foreground">{selectedDelivery.name}</p>
+                  </div>
+                )}
+                {boltDelivery && (
+                  <div className="flex items-center gap-3">
+                    <Zap className="h-4 w-4 flex-shrink-0" style={{ color: "#34D186" }} />
+                    <p className="text-sm text-muted-foreground">
+                      Bolt delivery to: {boltDelivery.dropoffAddress}
+                    </p>
                   </div>
                 )}
               </div>
@@ -456,14 +501,19 @@ export function CheckoutPage() {
                 <div className="space-y-4">
                   <div>
                     <Label className="text-sm font-medium mb-1.5 block">Delivery Location *</Label>
-                    <Select value={deliveryLocation} onValueChange={setDeliveryLocation}>
+                    <Select value={deliveryLocation} onValueChange={(val) => { setDeliveryLocation(val); setBoltDelivery(null) }}>
                       <SelectTrigger className="h-11">
                         <SelectValue placeholder="Select delivery location" />
                       </SelectTrigger>
                       <SelectContent>
                         {deliveryLocations.map((loc) => (
                           <SelectItem key={loc.id} value={loc.id}>
-                            {loc.name} — {formatPrice(loc.fee)} ({loc.estimatedDays})
+                            <span className="flex items-center gap-2">
+                              {loc.name.toLowerCase().includes("pick up mtaani") && (
+                                <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-white text-[9px] font-bold flex-shrink-0">P</span>
+                              )}
+                              {loc.name} — {formatPrice(loc.fee)} ({loc.estimatedDays})
+                            </span>
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -472,13 +522,29 @@ export function CheckoutPage() {
                       <p className="text-xs text-muted-foreground mt-1">Please select a delivery location to proceed</p>
                     )}
                   </div>
+
+                  {/* Pick Up Mtaani Info */}
+                  {isPickupMtaani && (
+                    <div className="flex items-start gap-3 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 p-4 rounded-sm">
+                      <div className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center flex-shrink-0 text-xs font-bold">PM</div>
+                      <div>
+                        <p className="text-sm font-semibold text-orange-900 dark:text-orange-200">Pick Up Mtaani Collection Point</p>
+                        <p className="text-xs text-orange-700 dark:text-orange-300 mt-1">
+                          Your order will be delivered to the nearest Pick Up Mtaani agent point. You will receive an SMS notification when your parcel is ready for collection.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   <div>
-                    <Label htmlFor="address" className="text-sm font-medium mb-1.5 block">Delivery Address *</Label>
+                    <Label htmlFor="address" className="text-sm font-medium mb-1.5 block">
+                      {isPickupMtaani ? "Collection Details *" : "Delivery Address *"}
+                    </Label>
                     <Textarea
                       id="address"
                       value={formData.address}
                       onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                      placeholder="Building name, street, area..."
+                      placeholder={isPickupMtaani ? "Nearest landmark to the collection point..." : "Building name, street, area..."}
                       rows={3}
                     />
                   </div>
@@ -492,6 +558,60 @@ export function CheckoutPage() {
                       rows={2}
                     />
                   </div>
+
+                  {/* Bolt Delivery Option */}
+                  {!isPickup && deliveryLocation && (
+                    <div className="border border-border rounded-sm overflow-hidden">
+                      <div className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#34D186" }}>
+                              <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none">
+                                <path
+                                  d="M13 2L4.09 12.11C3.69 12.59 3.89 13.34 4.48 13.53L10.28 15.42L9.49 21.17C9.37 21.92 10.28 22.37 10.78 21.82L19.91 11.89C20.31 11.41 20.11 10.66 19.52 10.47L13.72 8.58L14.51 2.83C14.63 2.08 13.72 1.63 13.22 2.18L13 2Z"
+                                  fill="white"
+                                  stroke="white"
+                                  strokeWidth="0.5"
+                                />
+                              </svg>
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold flex items-center gap-2">
+                                Bolt Delivery
+                                {boltDelivery && (
+                                  <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: "#34D18620", color: "#34D186" }}>
+                                    <CheckCircle className="h-3 w-3" /> Requested
+                                  </span>
+                                )}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {boltDelivery
+                                  ? `Fee: ${formatPrice(boltDelivery.estimatedFee)} — To: ${boltDelivery.dropoffAddress}`
+                                  : "Get your order delivered fast via Bolt driver"
+                                }
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleBoltDelivery}
+                            className="text-xs font-medium shrink-0"
+                            style={boltDelivery ? { borderColor: "#34D186", color: "#34D186" } : {}}
+                          >
+                            {boltDelivery ? "Change" : "Request"}
+                          </Button>
+                        </div>
+                        {!boltDelivery && (
+                          <p className="text-[11px] text-muted-foreground mt-2 flex items-center gap-1">
+                            <Zap className="h-3 w-3" style={{ color: "#34D186" }} />
+                            A Bolt driver picks up from our store and delivers to your door. 30-60 min in Nairobi.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -570,9 +690,18 @@ export function CheckoutPage() {
                       {freeShipping ? "FREE" : selectedDelivery ? formatPrice(deliveryFee) : "\u2014"}
                     </span>
                   </div>
+                  {boltDelivery && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <Zap className="h-3 w-3" style={{ color: "#34D186" }} />
+                        Bolt Delivery
+                      </span>
+                      <span>{formatPrice(boltFee)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-base font-semibold pt-2 border-t border-border">
                     <span>Total</span>
-                    <span>{formatPrice(freeShipping ? totalPrice : grandTotal)}</span>
+                    <span>{formatPrice(freeShipping ? totalPrice + boltFee : grandTotal)}</span>
                   </div>
                 </div>
 
@@ -668,6 +797,15 @@ export function CheckoutPage() {
         total={freeShipping ? totalPrice : grandTotal}
         customerPhone={formData.phone}
         onPaymentConfirmed={handleCardConfirmed}
+      />
+
+      <BoltDeliveryModal
+        isOpen={showBolt}
+        onClose={() => setShowBolt(false)}
+        total={freeShipping ? totalPrice : grandTotal}
+        customerPhone={formData.phone}
+        customerAddress={formData.address}
+        onBoltRequested={handleBoltRequested}
       />
     </div>
   )
