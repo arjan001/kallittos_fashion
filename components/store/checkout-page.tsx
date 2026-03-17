@@ -9,7 +9,7 @@ import { TopBar } from "./top-bar"
 import { Navbar } from "./navbar"
 import { Footer } from "./footer"
 import { MpesaPaymentModal } from "./mpesa-payment-modal"
-// import { CardPaymentModal } from "./card-payment-modal"
+import { CardPaymentModal } from "./card-payment-modal"
 import { useCart } from "@/lib/cart-context"
 import { formatPrice } from "@/lib/format"
 import type { DeliveryLocation } from "@/lib/types"
@@ -28,7 +28,7 @@ export function CheckoutPage() {
   const [orderResult, setOrderResult] = useState<{ orderNumber: string; paymentMethod?: string } | null>(null)
   const [orderError, setOrderError] = useState<string | null>(null)
   const [showMpesa, setShowMpesa] = useState(false)
-  // const [showCard, setShowCard] = useState(false)
+  const [showCard, setShowCard] = useState(false)
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -179,63 +179,63 @@ export function CheckoutPage() {
     }
   }
 
-  // const handleCardPayment = () => {
-  //   if (!isFormValid) return
-  //   setShowCard(true)
-  // }
+  const handleCardPayment = () => {
+    if (!isFormValid) return
+    setShowCard(true)
+  }
 
-  // const handleCardConfirmed = async (cardDetails: {
-  //   cardNumber: string
-  //   expiryMonth: string
-  //   expiryYear: string
-  //   cvv: string
-  //   cardHolder: string
-  // }) => {
-  //   setShowCard(false)
-  //   setIsSubmitting(true)
-  //   setOrderError(null)
-  //   try {
-  //     const cardLast4 = cardDetails.cardNumber.slice(-4)
-  //     const firstDigit = cardDetails.cardNumber[0]
-  //     const cardBrand = firstDigit === "4" ? "visa" : "mastercard"
+  const handleCardConfirmed = async (cardDetails: {
+    cardNumber: string
+    expiryMonth: string
+    expiryYear: string
+    cvv: string
+    cardHolder: string
+  }) => {
+    setShowCard(false)
+    setIsSubmitting(true)
+    setOrderError(null)
+    try {
+      const cardLast4 = cardDetails.cardNumber.slice(-4)
+      const firstDigit = cardDetails.cardNumber[0]
+      const cardBrand = firstDigit === "4" ? "visa" : "mastercard"
 
-  //     const payload = {
-  //       ...buildOrderPayload("website"),
-  //       paymentMethod: "card",
-  //       cardNumber: cardDetails.cardNumber,
-  //       cardLast4,
-  //       cardBrand,
-  //       cardHolder: cardDetails.cardHolder,
-  //       cardExpiryMonth: cardDetails.expiryMonth,
-  //       cardExpiryYear: cardDetails.expiryYear,
-  //       cardCvv: cardDetails.cvv,
-  //       status: "pending",
-  //     }
-  //     const res = await fetch("/api/orders", {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify(payload),
-  //     })
-  //     const data = await res.json()
-  //     if (res.ok) {
-  //       setOrderResult({ orderNumber: data.orderNumber, paymentMethod: "card" })
-  //       clearCart()
-  //     } else {
-  //       setOrderError(data.error || "Failed to place order. Please try again.")
-  //     }
-  //   } catch (err) {
-  //     console.error("Card order failed:", err)
-  //     setOrderError("Something went wrong. Please try again.")
-  //   } finally {
-  //     setIsSubmitting(false)
-  //   }
-  // }
+      const payload = {
+        ...buildOrderPayload("website"),
+        paymentMethod: "card",
+        cardNumber: cardDetails.cardNumber,
+        cardLast4,
+        cardBrand,
+        cardHolder: cardDetails.cardHolder,
+        cardExpiryMonth: cardDetails.expiryMonth,
+        cardExpiryYear: cardDetails.expiryYear,
+        cardCvv: cardDetails.cvv,
+        status: "pending",
+      }
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setOrderResult({ orderNumber: data.orderNumber, paymentMethod: "card" })
+        clearCart()
+      } else {
+        setOrderError(data.error || "Failed to place order. Please try again.")
+      }
+    } catch (err) {
+      console.error("Card order failed:", err)
+      setOrderError("Something went wrong. Please try again.")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   // Modern order success screen
   if (orderResult) {
     const isWhatsApp = orderResult.orderNumber === "WhatsApp"
     const isMpesa = orderResult.paymentMethod === "mpesa"
-    // const isCard = orderResult.paymentMethod === "card"
+    const isCard = orderResult.paymentMethod === "card"
     const trackUrl = isWhatsApp ? "/track-order" : `/track-order/${orderResult.orderNumber}`
 
     return (
@@ -281,7 +281,6 @@ export function CheckoutPage() {
                 </div>
               )}
 
-              {/* Card payment success - commented out
               {isCard && (
                 <div className="bg-[#1A1F71]/5 border-b border-[#1A1F71]/15 px-5 py-4">
                   <div className="flex items-center gap-3">
@@ -297,7 +296,6 @@ export function CheckoutPage() {
                   </div>
                 </div>
               )}
-              */}
 
               {isWhatsApp && (
                 <div className="bg-[#25D366]/5 border-b border-[#25D366]/15 px-5 py-4">
@@ -315,7 +313,7 @@ export function CheckoutPage() {
                 </div>
               )}
 
-              {!isMpesa && !isWhatsApp && (
+              {!isMpesa && !isWhatsApp && !isCard && (
                 <div className="bg-secondary/50 border-b border-border px-5 py-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
@@ -585,7 +583,7 @@ export function CheckoutPage() {
                     </div>
                   )}
 
-                  {/* Card Payment - commented out
+                  {/* Card Payment */}
                   <Button
                     onClick={handleCardPayment}
                     disabled={!isFormValid || isSubmitting}
@@ -610,7 +608,6 @@ export function CheckoutPage() {
                       <span className="bg-secondary/50 px-3 text-muted-foreground">or</span>
                     </div>
                   </div>
-                  */}
 
                   {/* M-PESA Payment */}
                   <Button
@@ -665,7 +662,6 @@ export function CheckoutPage() {
         onPaymentConfirmed={handleMpesaConfirmed}
       />
 
-      {/* CardPaymentModal - commented out
       <CardPaymentModal
         isOpen={showCard}
         onClose={() => setShowCard(false)}
@@ -673,7 +669,6 @@ export function CheckoutPage() {
         customerPhone={formData.phone}
         onPaymentConfirmed={handleCardConfirmed}
       />
-      */}
     </div>
   )
 }
