@@ -4,6 +4,10 @@
 -- Pick Up Mtaani pickup points as delivery locations.
 -- ============================================================
 
+-- Ensure the sort_order column exists (may be missing on older schemas)
+ALTER TABLE delivery_locations
+ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0;
+
 -- Pick Up Mtaani - Nairobi CBD
 INSERT INTO delivery_locations (id, name, fee, estimated_days, is_active, sort_order)
 VALUES (
