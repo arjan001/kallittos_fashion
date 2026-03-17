@@ -1,5 +1,11 @@
+-- =====================================================
+-- Migration 009: SEO Pages & Page Views Tables
+-- This is a standalone migration. Run on existing databases.
+-- All statements use IF NOT EXISTS / safe patterns.
+-- =====================================================
+
 -- SEO page-level overrides table
-CREATE TABLE IF NOT EXISTS seo_pages (
+CREATE TABLE IF NOT EXISTS public.seo_pages (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   page_path text UNIQUE NOT NULL,
   page_title text,
@@ -18,7 +24,7 @@ CREATE TABLE IF NOT EXISTS seo_pages (
 );
 
 -- Page views tracking table
-CREATE TABLE IF NOT EXISTS page_views (
+CREATE TABLE IF NOT EXISTS public.page_views (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   page_path text NOT NULL,
   referrer text,
@@ -32,12 +38,12 @@ CREATE TABLE IF NOT EXISTS page_views (
 );
 
 -- Index for fast queries on page_views
-CREATE INDEX IF NOT EXISTS idx_page_views_created_at ON page_views (created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_page_views_page_path ON page_views (page_path);
-CREATE INDEX IF NOT EXISTS idx_page_views_session ON page_views (session_id);
+CREATE INDEX IF NOT EXISTS idx_page_views_created_at ON public.page_views (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_page_views_page_path ON public.page_views (page_path);
+CREATE INDEX IF NOT EXISTS idx_page_views_session ON public.page_views (session_id);
 
 -- Seed default SEO entries for key pages
-INSERT INTO seo_pages (page_path, page_title, meta_title, meta_description, meta_keywords) VALUES
+INSERT INTO public.seo_pages (page_path, page_title, meta_title, meta_description, meta_keywords) VALUES
   ('/', 'Home', 'Kallittos Fashions | Curated Thrift & New Denim in Kenya', 'Shop the best curated thrift jeans, denim jackets, mom jeans, skinny jeans and more. Delivered across Nairobi & Kenya. Affordable, sustainable fashion.', 'kallittosfashions, kallittos fashions, thrift jeans Kenya, denim Nairobi, buy jeans online Kenya'),
   ('/shop', 'Shop', 'Shop Thrift Jeans & Denim | Kallittos Fashions Kenya', 'Browse our full collection of curated thrift & new denim. Mom jeans, skinny, boyfriend, shorts & more. Best denim designs in Kenya.', 'shop denim Kenya, thrift jeans Nairobi, buy jeans online, mom jeans Kenya, skinny jeans'),
   ('/delivery', 'Delivery', 'Delivery Locations | Kallittos Fashions', 'We deliver across Nairobi and major towns in Kenya. Same-day delivery in Nairobi CBD. Check our delivery locations and rates.', 'denim delivery Nairobi, jeans delivery Kenya, Kallittos delivery'),
@@ -48,15 +54,15 @@ INSERT INTO seo_pages (page_path, page_title, meta_title, meta_description, meta
 ON CONFLICT (page_path) DO NOTHING;
 
 -- RLS policies
-ALTER TABLE seo_pages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE page_views ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.seo_pages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.page_views ENABLE ROW LEVEL SECURITY;
 
 -- Allow public read on seo_pages (for the frontend to read meta)
-CREATE POLICY "Allow public read on seo_pages" ON seo_pages FOR SELECT USING (true);
+CREATE POLICY "Allow public read on seo_pages" ON public.seo_pages FOR SELECT USING (true);
 -- Allow authenticated users to manage seo_pages
-CREATE POLICY "Allow authenticated manage seo_pages" ON seo_pages FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Allow authenticated manage seo_pages" ON public.seo_pages FOR ALL USING (auth.role() = 'authenticated');
 
 -- Allow public insert on page_views (anyone visiting can be tracked)
-CREATE POLICY "Allow public insert page_views" ON page_views FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public insert page_views" ON public.page_views FOR INSERT WITH CHECK (true);
 -- Allow authenticated to read page_views (admin analytics)
-CREATE POLICY "Allow authenticated read page_views" ON page_views FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Allow authenticated read page_views" ON public.page_views FOR SELECT USING (auth.role() = 'authenticated');
