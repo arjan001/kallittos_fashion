@@ -10,7 +10,8 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 export function NewArrivals() {
   const { data: products = [] } = useSWR<Product[]>("/api/products", fetcher)
-  const newProducts = products.filter((p) => p.isNew)
+  const inStockProducts = products.filter((p) => p.inStock !== false)
+  const newProducts = inStockProducts.filter((p) => p.isNew)
 
   // If not enough new products, fill with recent products from different categories
   let displayed = [...newProducts]
@@ -18,7 +19,7 @@ export function NewArrivals() {
     const usedIds = new Set(displayed.map((p) => p.id))
     const usedCats = new Set(displayed.map((p) => p.categorySlug))
     // Add products from categories not yet represented
-    for (const p of products) {
+    for (const p of inStockProducts) {
       if (displayed.length >= 4) break
       if (!usedIds.has(p.id) && !usedCats.has(p.categorySlug)) {
         displayed.push(p)
@@ -27,7 +28,7 @@ export function NewArrivals() {
       }
     }
     // If still not enough, add any remaining
-    for (const p of products) {
+    for (const p of inStockProducts) {
       if (displayed.length >= 4) break
       if (!usedIds.has(p.id)) {
         displayed.push(p)

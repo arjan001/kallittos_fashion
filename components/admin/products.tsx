@@ -66,6 +66,7 @@ export function AdminProducts() {
   const [form, setForm] = useState<ProductForm>(emptyForm)
   const [searchQuery, setSearchQuery] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("all")
+  const [stockFilter, setStockFilter] = useState("all")
   const [newImageUrl, setNewImageUrl] = useState("")
   const [showImport, setShowImport] = useState(false)
   const [importCsv, setImportCsv] = useState("")
@@ -87,7 +88,9 @@ export function AdminProducts() {
       p.category.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesCategory =
       categoryFilter === "all" || p.categorySlug === categoryFilter
-    return matchesSearch && matchesCategory
+    const matchesStock =
+      stockFilter === "all" || (stockFilter === "in_stock" ? p.inStock : !p.inStock)
+    return matchesSearch && matchesCategory && matchesStock
   })
 
   const { paginatedItems, currentPage, totalPages, totalItems, itemsPerPage, goToPage, changePerPage } = usePagination(filtered, { defaultPerPage: 20 })
@@ -477,6 +480,16 @@ export function AdminProducts() {
               ))}
             </SelectContent>
           </Select>
+          <Select value={stockFilter} onValueChange={setStockFilter}>
+            <SelectTrigger className="w-[160px] h-10">
+              <SelectValue placeholder="All Stock" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Stock</SelectItem>
+              <SelectItem value="in_stock">In Stock</SelectItem>
+              <SelectItem value="out_of_stock">Out of Stock</SelectItem>
+            </SelectContent>
+          </Select>
           {categoryFilter !== "all" && (
             <Button
               variant="ghost"
@@ -792,7 +805,7 @@ export function AdminProducts() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="flex items-center gap-2">
                 <Switch checked={form.inStock} onCheckedChange={(checked) => setForm({ ...form, inStock: checked })} />
-                <Label className="text-sm">In Stock</Label>
+                <Label className="text-sm">{form.inStock ? "In Stock" : "Out of Stock"}</Label>
               </div>
               <div className="flex items-center gap-2">
                 <Switch checked={form.isNew} onCheckedChange={(checked) => setForm({ ...form, isNew: checked })} />
@@ -814,6 +827,9 @@ export function AdminProducts() {
                 </div>
               )}
             </div>
+            {!editingId && (
+              <p className="text-xs text-muted-foreground">Each product is a unique 1-of-1 piece. Stock is automatically set to available and will be marked as sold when an order is confirmed.</p>
+            )}
 
             {/* Save Button */}
             <div className="flex justify-end gap-3 pt-4 border-t border-border">

@@ -95,7 +95,8 @@ export function ShopPage() {
   }, [products.length, maxPrice, priceInitialized])
 
   const filtered = useMemo(() => {
-    let result = [...products]
+    // Only show in-stock products on the storefront
+    let result = products.filter((p) => p.inStock !== false)
 
     if (queryParam) {
       const q = queryParam.toLowerCase()
