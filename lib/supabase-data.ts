@@ -138,10 +138,11 @@ export async function getCategories(): Promise<Category[]> {
 
   if (!categories) return []
 
-  // Get product counts per category
+  // Get product counts per category (only in-stock products)
   const { data: products } = await supabase
     .from("products")
     .select("category_id")
+    .eq("in_stock", true)
 
   const countMap: Record<string, number> = {}
   for (const p of products || []) {

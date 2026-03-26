@@ -26,7 +26,12 @@ export function ProductCard({ product }: { product: Product }) {
 
           {/* Badges */}
           <div className="absolute top-3 left-3 flex flex-col gap-1.5">
-            {product.isNew && (
+            {product.inStock === false && (
+              <span className="bg-secondary text-muted-foreground text-[10px] font-semibold tracking-wider uppercase px-2.5 py-1">
+                Sold
+              </span>
+            )}
+            {product.isNew && product.inStock !== false && (
               <span className="bg-foreground text-background text-[10px] font-semibold tracking-wider uppercase px-2.5 py-1">
                 New
               </span>
@@ -58,19 +63,21 @@ export function ProductCard({ product }: { product: Product }) {
           </div>
 
           {/* Add to Cart */}
-          <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault()
-                addItem(product)
-              }}
-              className="w-full flex items-center justify-center gap-2 bg-foreground text-background py-2.5 text-xs font-medium uppercase tracking-wider hover:bg-foreground/90 transition-colors"
-            >
-              <ShoppingBag className="h-3.5 w-3.5" />
-              Add to Cart
-            </button>
-          </div>
+          {product.inStock !== false && (
+            <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  addItem(product)
+                }}
+                className="w-full flex items-center justify-center gap-2 bg-foreground text-background py-2.5 text-xs font-medium uppercase tracking-wider hover:bg-foreground/90 transition-colors"
+              >
+                <ShoppingBag className="h-3.5 w-3.5" />
+                Add to Cart
+              </button>
+            </div>
+          )}
         </div>
       </Link>
 

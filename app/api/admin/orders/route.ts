@@ -107,5 +107,27 @@ export async function PATCH(request: NextRequest) {
     .eq("id", body.id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // When order is confirmed, mark all ordered products as out of stock (1-of-1 unique pieces)
+  if (body.status === "confirmed") {
+    const { data: orderItems } = await supabase
+      .from("order_items")
+      .select("product_id")
+      .eq("order_id", body.id)
+
+    if (orderItems && orderItems.length > 0) {
+      const productIds = orderItems
+        .map((item) => item.product_id)
+        .filter(Boolean)
+
+      if (productIds.length > 0) {
+        await supabase
+          .from("products")
+          .update({ in_stock: false })
+          .in("id", productIds)
+      }
+    }
+  }
+
   return NextResponse.json({ success: true })
 }

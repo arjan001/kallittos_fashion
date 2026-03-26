@@ -9,9 +9,11 @@ import useSWR from "swr"
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 function getMixedProducts(products: Product[], count: number): Product[] {
+  // Only show in-stock products
+  const inStockProducts = products.filter((p) => p.inStock !== false)
   // Group products by category
   const byCategory: Record<string, Product[]> = {}
-  for (const p of products) {
+  for (const p of inStockProducts) {
     const cat = p.categorySlug || "other"
     if (!byCategory[cat]) byCategory[cat] = []
     byCategory[cat].push(p)

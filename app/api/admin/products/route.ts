@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
         is_new: body.isNew || false,
         is_on_offer: body.isOnOffer || false,
         offer_percentage: body.offerPercentage || 0,
-        in_stock: body.inStock ?? true,
+        in_stock: true,
         collection: body.collection || "unisex",
         is_featured: false,
         condition: "new",

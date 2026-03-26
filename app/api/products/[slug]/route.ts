@@ -30,7 +30,7 @@ export async function GET(
 
     // Fetch all products for related recommendations
     const allProducts = await getProducts()
-    const others = allProducts.filter((p) => p.id !== product.id)
+    const others = allProducts.filter((p) => p.id !== product.id && p.inStock !== false)
 
     // Score each product by: same category (+5), name similarity, shared tags
     const productTagSet = new Set(product.tags.map((t) => t.toLowerCase()))

@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { ChevronRight, Minus, Plus, Heart, ShoppingBag, Truck, RotateCcw, Shield } from "lucide-react"
+import { ChevronRight, Heart, ShoppingBag, Truck, RotateCcw, Shield } from "lucide-react"
 import { TopBar } from "./top-bar"
 import { Navbar } from "./navbar"
 import { Footer } from "./footer"
@@ -37,7 +37,6 @@ export function ProductDetailPage({ slug }: { slug: string }) {
   const { toggleItem, isInWishlist } = useWishlist()
   const wishlisted = product ? isInWishlist(product.id) : false
   const [selectedImage, setSelectedImage] = useState(0)
-  const [quantity, setQuantity] = useState(1)
   const [selectedVariations, setSelectedVariations] = useState<Record<string, string>>({})
 
   if (isLoading) {
@@ -76,13 +75,13 @@ export function ProductDetailPage({ slug }: { slug: string }) {
   }
 
   const handleAddToCart = () => {
-    addItem(product, quantity, Object.keys(selectedVariations).length > 0 ? selectedVariations : undefined)
+    addItem(product, 1, Object.keys(selectedVariations).length > 0 ? selectedVariations : undefined)
   }
 
   const productUrl = typeof window !== "undefined" ? `${window.location.origin}/product/${product.slug}` : ""
   const productImage = product.images[0] || ""
   const whatsappMessage = encodeURIComponent(
-    `Hi! I'd like to order:\n\n*${product.name}*\nPrice: ${formatPrice(product.price)}\nQuantity: ${quantity}${
+    `Hi! I'd like to order:\n\n*${product.name}*\nPrice: ${formatPrice(product.price)}\nQuantity: 1${
       Object.entries(selectedVariations).length > 0
         ? `\n${Object.entries(selectedVariations).map(([k, v]) => `${k}: ${v}`).join("\n")}`
         : ""
@@ -218,39 +217,35 @@ export function ProductDetailPage({ slug }: { slug: string }) {
                 </div>
               ))}
 
-              {/* Quantity */}
+              {/* Quantity - fixed at 1 (unique 1-of-1 pieces) */}
               <div className="mt-6">
                 <p className="text-sm font-medium mb-2">Quantity</p>
                 <div className="inline-flex items-center border border-border">
-                  <button
-                    type="button"
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="w-10 h-10 flex items-center justify-center hover:bg-secondary transition-colors"
-                  >
-                    <Minus className="h-4 w-4" />
-                  </button>
-                  <span className="w-12 h-10 flex items-center justify-center text-sm font-medium border-x border-border">
-                    {quantity}
+                  <span className="w-12 h-10 flex items-center justify-center text-sm font-medium">
+                    1
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => setQuantity(quantity + 1)}
-                    className="w-10 h-10 flex items-center justify-center hover:bg-secondary transition-colors"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </button>
                 </div>
+                <p className="text-xs text-muted-foreground mt-1">Each piece is unique — 1 of 1</p>
               </div>
 
               {/* Actions */}
               <div className="flex gap-3 mt-8">
-                <Button
-                  onClick={handleAddToCart}
-                  className="flex-1 bg-foreground text-background hover:bg-foreground/90 h-12 text-sm font-medium"
-                >
-                  <ShoppingBag className="h-4 w-4 mr-2" />
-                  Add to Cart
-                </Button>
+                {product.inStock === false ? (
+                  <Button
+                    disabled
+                    className="flex-1 bg-secondary text-muted-foreground h-12 text-sm font-medium cursor-not-allowed"
+                  >
+                    Sold Out
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleAddToCart}
+                    className="flex-1 bg-foreground text-background hover:bg-foreground/90 h-12 text-sm font-medium"
+                  >
+                    <ShoppingBag className="h-4 w-4 mr-2" />
+                    Add to Cart
+                  </Button>
+                )}
                 <a
                   href={`https://wa.me/254713809695?text=${whatsappMessage}`}
                   target="_blank"

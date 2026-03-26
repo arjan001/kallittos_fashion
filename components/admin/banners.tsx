@@ -134,6 +134,10 @@ export function AdminBanners() {
     mutate(); setPopupModal(false)
   }
   const deletePopup = async (id: string) => { await fetch(`/api/admin/banners?id=${id}&type=popup_offer`, { method: "DELETE" }); mutate() }
+  const togglePopup = async (p: PopupData) => {
+    await fetch("/api/admin/banners", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "popup_offer", id: p.id, title: p.title, description: p.description, discountPercentage: p.discount_percentage, image: p.image_url, isActive: !p.is_active }) })
+    mutate()
+  }
 
   return (
     <AdminShell title="Offers & Banners">
@@ -247,7 +251,8 @@ export function AdminBanners() {
                   <h3 className="text-sm font-semibold">{p.title}</h3>
                   <p className="text-xs text-muted-foreground">{p.discount_percentage ? `${p.discount_percentage}% OFF` : "No discount set"}</p>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2">
+                  <Switch checked={p.is_active} onCheckedChange={() => togglePopup(p)} />
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openPopupEdit(p)}><Pencil className="h-3.5 w-3.5" /></Button>
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deletePopup(p.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
                 </div>

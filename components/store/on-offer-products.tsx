@@ -10,14 +10,15 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 export function OnOfferProducts() {
   const { data: products = [] } = useSWR<Product[]>("/api/products", fetcher)
-  const offerProducts = products.filter((p) => p.isOnOffer)
+  const inStockProducts = products.filter((p) => p.inStock !== false)
+  const offerProducts = inStockProducts.filter((p) => p.isOnOffer)
 
   // If not enough offer products, supplement with mixed items from different categories
   let displayed = [...offerProducts]
   if (displayed.length < 4) {
     const usedIds = new Set(displayed.map((p) => p.id))
     const usedCats = new Set(displayed.map((p) => p.categorySlug))
-    for (const p of products) {
+    for (const p of inStockProducts) {
       if (displayed.length >= 4) break
       if (!usedIds.has(p.id) && !usedCats.has(p.categorySlug)) {
         displayed.push(p)
@@ -25,7 +26,7 @@ export function OnOfferProducts() {
         usedCats.add(p.categorySlug)
       }
     }
-    for (const p of products) {
+    for (const p of inStockProducts) {
       if (displayed.length >= 4) break
       if (!usedIds.has(p.id)) {
         displayed.push(p)

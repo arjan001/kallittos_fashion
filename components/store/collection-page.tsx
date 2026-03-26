@@ -200,7 +200,8 @@ export function CollectionPage({ collection }: { collection: string }) {
   }, [collectionProducts.length, maxPrice, priceInitialized])
 
   const filtered = useMemo(() => {
-    let result = [...collectionProducts]
+    // Only show in-stock products on the storefront
+    let result = collectionProducts.filter((p) => p.inStock !== false)
     if (localSearch) {
       const q = localSearch.toLowerCase()
       result = result.filter((p) => p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q) || p.tags.some((t) => t.toLowerCase().includes(q)))
