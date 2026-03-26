@@ -61,6 +61,7 @@ export function CheckoutPage() {
   const grandTotal = totalPrice + deliveryFee + boltFee
   const freeShipping = totalPrice >= 5000
   const isFormValid = formData.name && formData.phone && formData.address && deliveryLocation
+  const showCardPaymentButton = false
   const isPickupMtaani = selectedDelivery?.name?.toLowerCase().includes("pick up mtaani")
   const isPickup = selectedDelivery?.name?.toLowerCase().includes("pick")
 
@@ -712,31 +713,35 @@ export function CheckoutPage() {
                     </div>
                   )}
 
-                  {/* Card Payment */}
-                  <Button
-                    onClick={handleCardPayment}
-                    disabled={!isFormValid || isSubmitting}
-                    className="w-full h-12 text-sm font-semibold disabled:opacity-40 bg-[#1A1F71] text-white hover:bg-[#141860]"
-                  >
-                    <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
-                      <line x1="1" y1="10" x2="23" y2="10" />
-                    </svg>
-                    Pay with Card
-                    <span className="ml-2 flex items-center gap-1 opacity-80">
-                      <svg className="h-4 w-6" viewBox="0 0 780 500" fill="none"><rect width="780" height="500" rx="40" fill="#fff"/><path d="M293 349l33-196h54l-34 196H293z" fill="#1A1F71"/><path d="M544 157c-11-4-27-8-48-8-53 0-90 27-90 65 0 28 26 44 47 53 21 10 28 16 28 24 0 13-17 19-32 19-21 0-33-3-50-10l-7-3-8 44c13 5 36 10 60 10 56 0 92-26 93-67 0-22-14-39-45-53-19-9-30-15-30-24 0-8 10-17 31-17 17 0 30 4 40 8l5 2 7-43z" fill="#1A1F71"/></svg>
-                      <svg className="h-4 w-6" viewBox="0 0 780 500" fill="none"><rect width="780" height="500" rx="40" fill="#fff"/><circle cx="330" cy="250" r="110" fill="#EB001B"/><circle cx="450" cy="250" r="110" fill="#F79E1B"/><path d="M390 168c26 22 43 55 43 92s-17 70-43 92c-26-22-43-55-43-92s17-70 43-92z" fill="#FF5F00"/></svg>
-                    </span>
-                  </Button>
+                  {showCardPaymentButton && (
+                    <>
+                      {/* Card Payment */}
+                      <Button
+                        onClick={handleCardPayment}
+                        disabled={!isFormValid || isSubmitting}
+                        className="w-full h-12 text-sm font-semibold disabled:opacity-40 bg-[#1A1F71] text-white hover:bg-[#141860]"
+                      >
+                        <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+                          <line x1="1" y1="10" x2="23" y2="10" />
+                        </svg>
+                        Pay with Card
+                        <span className="ml-2 flex items-center gap-1 opacity-80">
+                          <svg className="h-4 w-6" viewBox="0 0 780 500" fill="none"><rect width="780" height="500" rx="40" fill="#fff"/><path d="M293 349l33-196h54l-34 196H293z" fill="#1A1F71"/><path d="M544 157c-11-4-27-8-48-8-53 0-90 27-90 65 0 28 26 44 47 53 21 10 28 16 28 24 0 13-17 19-32 19-21 0-33-3-50-10l-7-3-8 44c13 5 36 10 60 10 56 0 92-26 93-67 0-22-14-39-45-53-19-9-30-15-30-24 0-8 10-17 31-17 17 0 30 4 40 8l5 2 7-43z" fill="#1A1F71"/></svg>
+                          <svg className="h-4 w-6" viewBox="0 0 780 500" fill="none"><rect width="780" height="500" rx="40" fill="#fff"/><circle cx="330" cy="250" r="110" fill="#EB001B"/><circle cx="450" cy="250" r="110" fill="#F79E1B"/><path d="M390 168c26 22 43 55 43 92s-17 70-43 92c-26-22-43-55-43-92s17-70 43-92z" fill="#FF5F00"/></svg>
+                        </span>
+                      </Button>
 
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-border" />
-                    </div>
-                    <div className="relative flex justify-center text-xs">
-                      <span className="bg-secondary/50 px-3 text-muted-foreground">or</span>
-                    </div>
-                  </div>
+                      <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                          <div className="w-full border-t border-border" />
+                        </div>
+                        <div className="relative flex justify-center text-xs">
+                          <span className="bg-secondary/50 px-3 text-muted-foreground">or</span>
+                        </div>
+                      </div>
+                    </>
+                  )}
 
                   {/* M-PESA Payment */}
                   <Button
